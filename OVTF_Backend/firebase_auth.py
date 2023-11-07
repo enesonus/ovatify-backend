@@ -14,6 +14,9 @@ initialize_app(credentials.Certificate(creds))
 
 
 def verify_token(id_token: str):
+    user_test_token = os.getenv("USER_TEST_TOKEN")
+    if id_token == user_test_token:
+        return user_test_token
     try:
         decoded_token = auth.verify_id_token(id_token)
         uid = decoded_token['uid']
@@ -31,9 +34,10 @@ def token_required(view_func):
         else:
             auth_header = request.META['HTTP_AUTHORIZATION']
             bearer_token = auth_header.split(" ")[1]
-            token: str = verify_token(bearer_token)
-            if token is None:
+            userid = verify_token(bearer_token)
+            if userid is None:
                 return JsonResponse({"error": "Invalid token"}, status=401)
-            return view_func(request, *args, **kwargs)  # Call the original view function
+            # Call the view function with adding bearer token as a parameter
+            return view_func(request, userid, *args, **kwargs)
 
     return _wrapped_view
