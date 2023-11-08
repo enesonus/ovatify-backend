@@ -16,7 +16,7 @@ jobs:
                              DB_USER="$DB_USER" \
                              DB_PASSWORD="$DB_PASSWORD" \
                              FIREBASE_CREDENTIALS="$FIREBASE_CREDENTIALS" \
-                             --app ovatify-backend-main
+                             --app ovatify-backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           DB_URL: ${{ secrets.DB_URL }}
