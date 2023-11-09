@@ -4,95 +4,136 @@ Welcome to the Ovatify project! This document provides a detailed guide on how t
 
 ## Setting Up Your Development Environment
 
-1. **Clone the Repository:**
-   To start, clone the repository to your local machine:
+### Clone the Repository
 
-   ```bash
-   git clone https://github.com/enesonus/ovatify-backend.git
-   ```
+To start, clone the repository to your local machine:
 
-2. **Create a New Branch:**
-   For every new feature or bugfix, create a new branch with your task number (e.g. OVTF-1,OVTF-96):
+```bash
+git clone https://github.com/enesonus/ovatify-backend.git
+```
 
-   ```bash
-   git checkout -b OVTF-TaskNum
-   ```
+### Create a New Branch
+
+For every new feature or bugfix, create a new branch with your task number (e.g. OVTF-1, OVTF-96). Please be sure that you are in `main` for plain (OVTF-1) branches and in `dev` for `-dev` (OVTF-1-dev) branches:
+
+```bash
+git checkout main
+git checkout -b OVTF-TaskNum
+```
+
+or
+
+```bash
+git checkout dev
+git checkout -b OVTF-TaskNum-dev
+```
 
 ## Working on Your Feature
 
-1. **Committing Changes:**
-   After you are done with the task you can send it to your branch with:
+### Committing Changes
 
-   ```bash
-   git add .
-   git commit -m "Add a concise and informative commit message"
-   ```
+After you are done with the code you can commit it to your branch with:
 
-2. **Fetching Latest Main Branch:**
-   Regularly fetch the latest changes from the main branch:
+```bash
+git add .
+git commit -m "Add a concise and informative commit message"
+```
 
-   ```bash
-   git fetch origin main
-   ```
+### Fetching Latest Main Branch
 
-3. **Rebasing onto Main:**
-   Keep your feature branch updated by rebasing onto the main branch:
+Regularly fetch the latest changes:
 
-   ```bash
-   git rebase origin/main
-   ```
+```bash
+git fetch --all
+```
 
-   If conflicts arise, resolve them (VS Code has a built in Merge editor for this), then continue rebasing:
+### Rebasing onto Main and Dev
 
-   ```bash
-   git rebase --continue
-   ```
+Keep your feature branch updated by rebasing onto the main branch. For development branch (-dev) rebase accordingly:
+
+Main:
+
+```bash
+git rebase origin/main
+```
+
+Dev:
+
+```bash
+git rebase origin/dev
+```
+
+If conflicts arise, resolve them (VS Code has a built in Merge editor for this), then continue rebasing:
+
+```bash
+git rebase --continue
+```
 
 ## Preparing to Merge
 
-1. **Squashing Commits:**
-   Before merging, squash your commits into a single commit for a cleaner history:
+### Squashing Commits
 
-   ```bash
-   git rebase -i <SHA of the latest commit before your commit>
-   ```
+Before merging, squash your commits into a single commit for a cleaner history:
 
-   In the text editor, replace `pick` with `squash` (or `s`) beside all commits you want to squash.
+```bash
+git rebase -i <SHA of the latest commit before your commit>
+```
 
-2. **Writing Good Commit Messages:**
-   - The first line should be a short summary of the changes, in the present tense.
-   - Leave a blank line after the summary.
-   - (Optional) Provide a detailed description of the changes on the following lines, wrapping the text at 72 characters.
+In most terminals this command opens a CLI text editor (usually vim).  
+- Press `i` to switch to insert mode
+- For commits you created after the first commit, replace "pick" with "squash" (or "s").
+- In order to save your work press ESC, write `:wq` (`w`rite and `q`uit) and press ENTER.
+- At the second screen again write `:wq` and ENTER.
 
-   Example:
+   Now you are done with squashing!
 
-   ```bash
-   OVTF-37 Implement user authentication
+### Writing Good Commit Messages
 
-   Add user authentication using the XYZ library. It includes basic
-   sign-up, sign-in, and sign-out features along with password encryption
-   and session management.
-   ```
+- The first line should be a short summary of the changes, in the present tense.
+- Leave a blank line after the summary.
+- (Optional) Provide a detailed description of the changes on the following lines, wrapping the text at 72 characters.
+
+Example:
+
+```bash
+OVTF-37: Implement user authentication
+```
+
+or
+
+```bash
+OVTF-37-dev: Implement user authentication
+```
 
 ## Submitting a Pull Request (PR)
 
-1. **Push Your Branch:**
-   Push your branch to GitHub named with the task number (e.g. OVTF-1, OVTF-98):
+### Push Your Branch
 
-   ```bash
-   git push -u origin OVTF-TaskNum
-   ```
+- Push your branch to GitHub named with the task number (e.g. OVTF-1, OVTF-98):
 
-2. **Create a Pull Request:**
-   - Go to the repository on GitHub.
-   - Click on "Pull Request" and then "New Pull Request".
-   - Select your branch and provide a concise, informative description of your changes.
+```bash
+git push -u origin OVTF-TaskNum
+```
 
-3. **Code Review:**
-   - Wait for a review from the team.
-   - Make any requested changes and re-push your branch.
+or
 
-4. **Final Rebase:**
+```bash
+git push -u origin OVTF-TaskNum-dev
+```
+
+### Create a Pull Request
+
+- Go to the repository on GitHub.
+- Click on "Pull Request" and then "New Pull Request".
+- Select your branch and provide a concise, informative description of your changes.
+
+### Code Review
+
+- Wait for a review from the team.
+- Make any requested changes and re-push your branch.
+
+### Final Rebase
+
    Before your PR is merged, ensure your branch is rebased onto the latest main branch:
 
    ```bash
@@ -100,7 +141,8 @@ Welcome to the Ovatify project! This document provides a detailed guide on how t
    git rebase origin/main
    ```
 
-5. **Merge and Clean-Up:**
+### Merge and Clean-Up
+
    After the PR is approved, the repository maintainer will merge the branch.
 
 ## Additional Guidelines
