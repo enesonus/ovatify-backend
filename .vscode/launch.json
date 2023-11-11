@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Django: Runserver",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "runserver"
+            ],
+            "django": true,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "OVTF_Backend.settings",
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
+        {
+            "name": "Django: Debug Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "test",
+                "--noinput",
+                "--failfast"
+            ],
+            "django": true,
+            "console": "integratedTerminal",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "OVTF_Backend.settings",
+                "PYTHONUNBUFFERED": "1"
+            }
+        }
+    ]
+}
