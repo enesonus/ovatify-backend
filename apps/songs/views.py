@@ -21,84 +21,72 @@ def get_all_songs(request):
 
 @csrf_exempt
 @token_required
-def add_song(request):
-    try:
-        if request.method == 'POST':
-            data = request.POST
-            song_name = data.get('song_name')
-            performers = data.get('performers')
-            album_name = data.get('album_name')
+def get_songs(request):
+    if request.method == 'GET':
+        data = request.GET
+        track_name = data.get('song_name')
 
-            if song_name is None and  performers is None and  album_name is None:
-                return JsonResponse({'error': 'Invalid input data'}, status=400)
-            
-            client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
-            sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+        if track_name is None:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+        try:
+            # Use filter instead of get to retrieve multiple songs with the same track name
+            songs = Song.objects.filter(track_name=track_name)
 
-            result = sp.search(q='track:' + song_name + ' artist:' + performers + ' album:' + album_name, type='track')
+            # Convert the list of song objects to a list of dictionaries for JsonResponse
+            songs_info = []
+            for song in songs:
+                song_info = {
+                    'song_id': song.song_id,
+                    'track_name': song.track_name,
+                    'release_year': song.release_year,
+                    'length': song.length.total_seconds(),
+                    'tempo': song.tempo,
+                    'genre': song.genre,
+                    'mood': song.mood,
+                    'recommended_environment': song.recommended_environment,
+                    'replay_count': song.replay_count,
+                    'version': song.version,
+                    # Add other fields as needed
+                }
+                songs_info.append(song_info)
 
-            if result['tracks']['items']:
-                track = result['tracks']['items'][0]
-                track_id = track['id']
-                audio_features = sp.audio_features(track_id)
-
-                if audio_features:
-                    audio_features = audio_features[0]
-                    recommended_environment = 'L' if audio_features['liveness'] >= 0.8 else 'S'
-                    tempo = ''
-                    if audio_features['tempo'] >= 120:
-                        tempo = 'F'
-                    elif 76 <= audio_features['tempo'] < 120:
-                        tempo = 'M'
-                    else:
-                        tempo = 'S'
-                    energy = audio_features['energy']
-                    if 0 <= energy < 0.25:
-                        mood = 'SA'  # Sad
-                    elif 0.25 <= energy < 0.5:
-                        mood = 'R'  # Relaxed
-                    elif 0.5 <= energy < 0.75:
-                        mood = 'H'  # Happy
-                    else:
-                        mood = 'E'
-
-                    # Create necessary objects in database
-                    new_song = Song.objects.create(
-                        track_name = track['name'],
-                        release_year = track['album']['release_date'][:4],
-                        length = track['duration_ms'],
-                        replay_count = 0,
-                        tempo = tempo,
-                        duration = track['duration_ms'],
-                        recommended_environment=recommended_environment,
-                        genre = track['artists'][0]['genres'][0] if track['artists'][0]['genres'] else '',
-                        mood = mood,
-                        version=track['album']['release_date'],
-                    )
-
-                    for artist in track['artists']:
-                        if 'genres' in artist and artist['genres']:
-                            for genre_name in artist['genres']:
-                                if genre_name:
-                                    genre, created = Genre.objects.get_or_create(genre_name=genre_name)
-                                    genre_song, created = GenreSong.objects.get_or_create(genre=genre, song=new_song)
-
-                    for artist in track['artists']:
-                        artist_name = artist['name']
-                        artist_instance, created = Artist.objects.get_or_create(name=artist_name)
-                        song_artist, created = SongArtist.objects.get_or_create(artist=artist_instance, song=new_song)
-
-                    return JsonResponse({'message': 'Song details fetched successfully'}, status=200)
-                else:
-                    return JsonResponse({'error': 'No audio features found for the song'}, status=400)
+            if songs_info:
+                return JsonResponse({'message': 'Songs found', 'songs_info': songs_info}, status=200)
             else:
-                return JsonResponse({'error': 'Song not found'}, status=400)
-        else:  
-            return JsonResponse({'error': 'Invalid method'}, status=400)
-    except KeyError as e:
-        logging.error(f"A KeyError occurred: {str(e)}")
-        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+                return JsonResponse({'error': 'Songs not found'}, status=404)
 
-    except Exception as e:
-        logging.error(f"An unexpected error occurred: {str(e)}")
-        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {str(e)}")
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+@csrf_exempt
+@token_required
+def get_song(request):
+    if request.method == 'GET':
+        data = request.GET
+        track_id = data.get('song_id')
+        if track_id is None:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        try:
+            song = Song.objects.get(song_id=track_id)
+            # Convert the song object to a dictionary for JsonResponse
+            song_info = {
+                'song_id': song.song_id,
+                'track_name': song.track_name,
+                'release_year': song.release_year,
+                'length': song.length.total_seconds(),
+                'tempo': song.tempo,
+                'genre': song.genre,
+                'mood': song.mood,
+                'recommended_environment': song.recommended_environment,
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            return JsonResponse({'message': 'song found','song_info': song_info}, status=200)
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'Song not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
