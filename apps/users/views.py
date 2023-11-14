@@ -67,7 +67,8 @@ def user_songs_view(request, user_id):
         return JsonResponse({'songs': serialized_songs})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+
 @csrf_exempt
 @token_required
 def user_preferences_create(request):
@@ -89,3 +90,9 @@ def user_preferences_create(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@token_required
+def hello_github(request):
+    return JsonResponse({'message': 'Hello from Enes!'}, status=200)
