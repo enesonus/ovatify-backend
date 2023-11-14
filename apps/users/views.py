@@ -95,4 +95,4 @@ def user_preferences_create(request):
 @csrf_exempt
 @token_required
 def hello_github(request):
-    return JsonResponse({'message': 'Hello from Enes!'}, status=200)
+    return JsonResponse({'message': 'Hello from Ovatify Team!'}, status=200)
