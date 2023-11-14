@@ -1,4 +1,7 @@
-from django.http import JsonResponse
+import json
+from datetime import timedelta
+
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
@@ -12,16 +15,90 @@ import logging
 
 @csrf_exempt
 @token_required
-def get_all_songs(request):
-    users = Song.objects.all()
+def get_all_songs(request, userid):
+    songs = Song.objects.all().values()
     context = {
-        "users": list(users)
+        "users": list(songs)
     }
     return JsonResponse(context, status=200)
 
+
 @csrf_exempt
 @token_required
-def add_song(request):
+def get_songs(request, userid):
+    if request.method == 'GET':
+        data = request.GET
+        track_name = data.get('song_name')
+
+        if track_name is None:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+        try:
+            # Use filter instead of get to retrieve multiple songs with the same track name
+            songs = Song.objects.filter(track_name=track_name)
+
+            # Convert the list of song objects to a list of dictionaries for JsonResponse
+            songs_info = []
+            for song in songs:
+                song_info = {
+                    'song_id': song.song_id,
+                    'track_name': song.track_name,
+                    'release_year': song.release_year,
+                    'length': song.length.total_seconds(),
+                    'tempo': song.tempo,
+                    'genre': song.genre,
+                    'mood': song.mood,
+                    'recommended_environment': song.recommended_environment,
+                    'replay_count': song.replay_count,
+                    'version': song.version,
+                    # Add other fields as needed
+                }
+                songs_info.append(song_info)
+
+            if songs_info:
+                return JsonResponse({'message': 'Songs found', 'songs_info': songs_info}, status=200)
+            else:
+                return JsonResponse({'error': 'Songs not found'}, status=404)
+
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {str(e)}")
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+
+
+@csrf_exempt
+@token_required
+def get_song(request, userid):
+    if request.method == 'GET':
+        data = request.GET
+        track_id = data.get('song_id')
+        if track_id is None:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        try:
+            song = Song.objects.get(song_id=track_id)
+            # Convert the song object to a dictionary for JsonResponse
+            song_info = {
+                'song_id': song.song_id,
+                'track_name': song.track_name,
+                'release_year': song.release_year,
+                'length': song.length.total_seconds(),
+                'tempo': song.tempo,
+                'genre': song.genre,
+                'mood': song.mood,
+                'recommended_environment': song.recommended_environment,
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            return JsonResponse({'message': 'song found', 'song_info': song_info}, status=200)
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'Song not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+
+
+@csrf_exempt
+@token_required
+def add_song(request, userid):
     try:
         if request.method == 'POST':
             data = request.POST
@@ -94,7 +171,7 @@ def add_song(request):
     
 @csrf_exempt
 @token_required
-def search_songs(request):
+def search_songs(request, userid):
     try:
         if request.method == 'GET':
             data = request.GET
@@ -128,74 +205,80 @@ def search_songs(request):
         return JsonResponse({'error': 'KeyError occurred'}, status=500)
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
-        return JsonResponse({'error': 'An unexpected error occurred'}, status=500) 
-      
-def get_songs(request):
-    if request.method == 'GET':
-        data = request.GET
-        track_name = data.get('song_name')
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
-        if track_name is None:
-            return JsonResponse({'error': 'Missing parameters'}, status=400)
-        try:
-            # Use filter instead of get to retrieve multiple songs with the same track name
-            songs = Song.objects.filter(track_name=track_name)
 
-            # Convert the list of song objects to a list of dictionaries for JsonResponse
-            songs_info = []
-            for song in songs:
-                song_info = {
-                    'song_id': song.song_id,
-                    'track_name': song.track_name,
-                    'release_year': song.release_year,
-                    'length': song.length.total_seconds(),
-                    'tempo': song.tempo,
-                    'genre': song.genre,
-                    'mood': song.mood,
-                    'recommended_environment': song.recommended_environment,
-                    'replay_count': song.replay_count,
-                    'version': song.version,
-                    # Add other fields as needed
-                }
-                songs_info.append(song_info)
-
-            if songs_info:
-                return JsonResponse({'message': 'Songs found', 'songs_info': songs_info}, status=200)
-            else:
-                return JsonResponse({'error': 'Songs not found'}, status=404)
-
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {str(e)}")
-            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid method'}, status=400)
-    
 @csrf_exempt
 @token_required
-def get_song(request):
-    if request.method == 'GET':
-        data = request.GET
-        track_id = data.get('song_id')
-        if track_id is None:
-            return JsonResponse({'error': 'Missing parameter'}, status=400)
-        try:
-            song = Song.objects.get(song_id=track_id)
-            # Convert the song object to a dictionary for JsonResponse
-            song_info = {
-                'song_id': song.song_id,
-                'track_name': song.track_name,
-                'release_year': song.release_year,
-                'length': song.length.total_seconds(),
-                'tempo': song.tempo,
-                'genre': song.genre,
-                'mood': song.mood,
-                'recommended_environment': song.recommended_environment,
-                'replay_count': song.replay_count,
-                'version': song.version,
-            }
-            return JsonResponse({'message': 'song found','song_info': song_info}, status=200)
-        except Song.DoesNotExist:
-            return JsonResponse({'error': 'Song not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid method'}, status=400)
+def import_song_JSON(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            data = json.load(file)
+        else:
+            return JsonResponse({'error': 'No file provided'}, status=400)
+        if isinstance(data, dict):
+            data = [data]
+        required_fields = ['track_name', 'release_year', 'length',
+                           'tempo', 'genre', 'mood',
+                           'recommended_environment', 'duration', 'replay_count', 'version']
+        for song_data in data:
+            # Assuming genre_id is provided in song_data to link Song with Genre
+            # return JsonResponse(song_data, safe=False, status=200)
+            if not all(field in song_data for field in required_fields):
+                return HttpResponse(status=400)
+            genre_name = song_data.get('genre', None)
+            genre, created = Genre.objects.get_or_create(genre_name=genre_name)
+            song_data['genre'] = genre
+            hours, minutes, seconds = map(int, song_data['length'].split(':'))
+            length_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
+            song_data['length'] = length_timedelta
+            song = Song(**song_data)
+            song.full_clean()
+            song.save()
 
+        return HttpResponse(status=201)
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON decode error: {e}")
+        return HttpResponse(status=400)
+    except ValidationError as e:
+        return JsonResponse({'errors': e.message_dict}, status=400)
+    except Genre.DoesNotExist:
+        return HttpResponse("Genre not found.", status=400)
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+        return HttpResponse(status=500)
+
+
+@csrf_exempt
+def create_genre(request):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        genre_name = data.get('genre_name')
+        if genre_name is None:
+            return HttpResponse(status=400)
+        genre = Genre(genre_name=genre_name)
+        genre.save()
+        return HttpResponse(status=201)
+    except Exception as e:
+        # TODO logging.("create_user: " + str(e))
+        return HttpResponse(status=500)
+
+
+@csrf_exempt
+def get_all_genres(request):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        genres = Genre.objects.all().values()
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+    context = {
+        "genres": list(genres)
+    }
+    return JsonResponse(context, status=200)
