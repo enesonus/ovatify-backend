@@ -8,8 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 
 from OVTF_Backend.firebase_auth import token_required
 from apps.users.models import User
-
-
+from apps.users.models import UserSongRating
+from apps.songs.models import Song
+from apps.users.models import UserPreferences, Friend
 # Create endpoints
 
 @csrf_exempt
@@ -108,3 +109,87 @@ def update_user(request, userid):
         return HttpResponse(status=204)
     except Exception as e:
         return HttpResponse(status=404)
+
+@csrf_exempt
+@token_required
+def user_songs_view(request, user_id):
+    try:
+        user_ratings = UserSongRating.objects.filter(user__firebase_uid=user_id)
+
+        song_ids = user_ratings.values_list('song_id', flat=True)
+        
+        songs = Song.objects.filter(song_id__in=song_ids)
+        
+        serialized_songs = [
+    {
+        'song_id': song.song_id,
+        'track_name': song.track_name,
+        'release_year': song.release_year,
+        'length': song.length.total_seconds(),  # Convert DurationField to seconds
+        'tempo': song.tempo,
+        'genre': song.genre.name,  # Assuming Genre has a 'name' attribute
+        'mood': song.mood,
+        'recommended_environment': song.recommended_environment,
+        'duration': song.duration,
+        'replay_count': song.replay_count,
+        'version': song.version,
+    }
+    for song in songs
+]
+
+        
+        return JsonResponse({'songs': serialized_songs})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def user_preferences_create(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+        user, created = User.objects.get_or_create(username=data.get('user'))
+
+        user_preferences, preferences_created = UserPreferences.objects.get_or_create(user=user)
+
+        user_preferences.data_processing_consent = data.get('data_processing_consent', True)
+        user_preferences.data_sharing_consent = data.get('data_sharing_consent', True)
+        user_preferences.save()
+
+        if preferences_created:
+            return JsonResponse({'message': 'UserPreferences created successfully.'}, status=201)
+        else:
+            return JsonResponse({'message': 'UserPreferences updated successfully.'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    
+@csrf_exempt
+@token_required
+def add_friend(request, userid):
+    try:
+        if request.method == 'POST':
+            try:
+                user_id = request.POST.get('user_id')
+                friend_id = request.POST.get('friend_id')
+
+                user = User.objects.get(firebase_uid=user_id)
+                friend = User.objects.get(firebase_uid=friend_id)
+
+                # Check if the friendship already exists
+                if Friend.objects.filter(user=user, friend=friend).exists():
+                    return JsonResponse({'detail': 'Friendship already exists'}, status=400)
+
+                # Create a new friend instance
+                Friend.objects.create(user=user, friend=friend)
+
+                return JsonResponse({'detail': 'Friend added successfully'}, status=200)
+
+            except User.DoesNotExist:
+                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
+
+        else:
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
