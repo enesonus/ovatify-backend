@@ -8,5 +8,8 @@ urlpatterns = [
  path('api/fetch', views.get_song, name='get-song'),
  path('api/add', views.add_song, name='add-song'),
  path('api/search', views.search_songs, name='search-songs'),
+ path('get-all-genres/', views.get_all_genres, name='get-all-genres'),
+ path('create-genre/', views.create_genre, name='create-genre'),
+ path('upload-file/', views.import_song_JSON, name='import-song-json'),
 
 ]
