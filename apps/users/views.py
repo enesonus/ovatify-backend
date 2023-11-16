@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from OVTF_Backend.firebase_auth import token_required
-from apps.users.models import User
+from apps.users.models import User, Friend
 from apps.users.models import UserSongRating
 from apps.songs.models import Song
 from apps.users.models import UserPreferences
@@ -171,3 +171,32 @@ def user_preferences_create(request):
 @token_required
 def hello_github(request):
     return JsonResponse({'message': 'Congrats from Ovatify Team!'}, status=200)
+
+@csrf_exempt
+@token_required
+def remove_friend(request, userid):
+    try:
+        if request.method == 'POST':
+            try:
+                user_id = request.POST.get('user_id')
+                friend_id = request.POST.get('friend_id')
+
+                user = User.objects.get(firebase_uid=user_id)
+                friend = User.objects.get(firebase_uid=friend_id)
+
+                friendship = Friend.objects.filter(user=user, friend=friend).first()
+                if not friendship:
+                    return JsonResponse({'detail': 'Friendship does not exist'}, status=400)
+
+                friendship.delete()
+
+                return JsonResponse({'detail': 'Friend removed successfully'}, status=200)
+
+            except User.DoesNotExist:
+                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
+
+        else:
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
