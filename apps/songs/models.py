@@ -43,7 +43,8 @@ class Song(CoreModel):
     genres = models.ManyToManyField('Genre', through='GenreSong')
     artists = models.ManyToManyField('Artist', through='ArtistSong')
     albums = models.ManyToManyField('Album', through='AlbumSong')
-    instruments = models.ManyToManyField('Instrument', through='InstrumentSong')
+    instruments = models.ManyToManyField('Instrument',
+                                         through='InstrumentSong')
     release_year = models.PositiveIntegerField()
     duration = models.DurationField()
     tempo = models.CharField(max_length=1, choices=Tempo.choices)
@@ -52,7 +53,8 @@ class Song(CoreModel):
                               max_length=1,
                               choices=RecordedEnvironment.choices)
     replay_count = models.PositiveIntegerField(default=0)
-    version = models.CharField(max_length=50, blank=True)
+    version = models.CharField(max_length=50,
+                               blank=True, null=True,)
     img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):

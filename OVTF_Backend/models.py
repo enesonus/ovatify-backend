@@ -98,3 +98,6 @@ class CoreModel(models.Model):
         self.is_active = False
         self.deleted_at = timezone.now()
         self.save()
+
+    def hard_delete(self):
+        super().delete()
