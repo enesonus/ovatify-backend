@@ -1,12 +1,15 @@
 import json
 from datetime import timedelta
+
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
+from django.db.models import Count, Sum
+
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
 from apps.songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
+from users.models import UserSongRating
 from spotipy.oauth2 import SpotifyClientCredentials
 from apps.users.models import User, UserSongRating
 import os
@@ -295,3 +298,42 @@ def get_all_genres(request):
         "genres": list(genres)
     }
     return JsonResponse(context, status=200)
+
+
+@csrf_exempt
+def average_song_rating(request):
+    try:
+        if request.method == 'GET':
+            data = request.GET
+            song_id = data.get('song_id')
+
+            if song_id is None:
+                return JsonResponse({'error': 'Missing song id'}, status=400)
+            
+            try:
+                song = Song.objects.get(song_id=song_id)
+            except Song.DoesNotExist:
+                return JsonResponse({'error': 'Song not found'}, status=404)
+            
+            try:
+                rating_aggregation = UserSongRating.objects.filter(song=song).aggregate(
+                    total_ratings=Count('rating'),
+                    sum_ratings=Sum('rating')
+                )
+
+                total_ratings = rating_aggregation['total_ratings']
+                sum_ratings = rating_aggregation['sum_ratings']
+
+                if total_ratings > 0:
+                    average_rating = sum_ratings / total_ratings
+                    return JsonResponse({'average_rating': average_rating}, status=200)
+                else:
+                    return JsonResponse({'error': 'No ratings available for this song'}, status=404)
+            except UserSongRating.DoesNotExist:
+                return JsonResponse({'error': 'No ratings available for this song'}, status=404)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
