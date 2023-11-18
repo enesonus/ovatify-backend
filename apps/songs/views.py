@@ -1,5 +1,7 @@
 import json
 from datetime import timedelta
+import os
+import logging
 
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Sum
@@ -8,12 +10,11 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
-from users.models import UserSongRating
+from songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
 from spotipy.oauth2 import SpotifyClientCredentials
-from apps.users.models import User, UserSongRating
-import os
-import logging
+
+from users.models import User, UserSongRating
+
 
 # Create your views here.
 

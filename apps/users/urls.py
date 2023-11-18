@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.users import views
+from users import views
 
 urlpatterns = [
     path('get-all/', view=views.get_all_users, name='get-all-users'),
