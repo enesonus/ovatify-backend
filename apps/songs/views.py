@@ -1,15 +1,20 @@
 import json
 from datetime import timedelta
+import os
+import logging
 
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
+from django.db.models import Count, Sum
+
+from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
+from songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
 from spotipy.oauth2 import SpotifyClientCredentials
-import os
-import logging
+
+from users.models import User, UserSongRating
+
 
 # Create your views here.
 
@@ -103,6 +108,7 @@ def add_song(request, userid):
         if request.method == 'POST':
             data = request.POST
             spotify_id = data.get('spotify_id')  # Add this line to get Spotify ID from the request
+            rating = data.get('rating')
 
             if not spotify_id:
                 return JsonResponse({'error': 'Spotify ID is required'}, status=400)
@@ -130,11 +136,10 @@ def add_song(request, userid):
                     else:
                         mood = 'E'
                     # Create necessary objects in the database
-                    new_song = Song.objects.create(
+                    new_song, created = Song.objects.get_or_create(
                         track_name=track['name'],
                         release_year=track['album']['release_date'][:4],
                         length=track['duration_ms'],
-                        replay_count=0,
                         tempo=tempo,
                         duration=track['duration_ms'],
                         recommended_environment=recommended_environment,
@@ -142,6 +147,9 @@ def add_song(request, userid):
                         mood=mood,
                         version=track['album']['release_date'],
                     )
+
+                    if not created:
+                        return JsonResponse({'message': 'Song already exists'}, status=403)
 
                     for artist in track['artists']:
                         if 'genres' in artist and artist['genres']:
@@ -154,6 +162,14 @@ def add_song(request, userid):
                         artist_name = artist['name']
                         artist_instance, created = Artist.objects.get_or_create(name=artist_name)
                         song_artist, created = SongArtist.objects.get_or_create(artist=artist_instance, song=new_song)
+
+                    if rating > 0 and rating <= 5:
+
+                        try:
+                            user = User.objects.get(user_id=userid)
+                            user_song_rating, created = UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
+                        except User.DoesNotExist:
+                            return JsonResponse({'error': 'User not found'}, status=404)
 
                     return JsonResponse({'message': 'Song details fetched successfully'}, status=200)
                 else:
@@ -193,7 +209,8 @@ def search_songs(request, userid):
                     'album_name': track['album']['name'],
                     'artist': ', '.join([artist['name'] for artist in track['artists']]),
                     'release_year': track['album']['release_date'][:4],
-                    'spotify_id': track['id'],                    
+                    'spotify_id': track['id'],
+                    'album_url' : track['album']['images'][0]['url'],
                 }
                 search_list.append(song_info)
             return JsonResponse({'message': 'Search successful', 'results': search_list}, status=200)
@@ -282,3 +299,42 @@ def get_all_genres(request):
         "genres": list(genres)
     }
     return JsonResponse(context, status=200)
+
+
+@csrf_exempt
+def average_song_rating(request):
+    try:
+        if request.method == 'GET':
+            data = request.GET
+            song_id = data.get('song_id')
+
+            if song_id is None:
+                return JsonResponse({'error': 'Missing song id'}, status=400)
+            
+            try:
+                song = Song.objects.get(song_id=song_id)
+            except Song.DoesNotExist:
+                return JsonResponse({'error': 'Song not found'}, status=404)
+            
+            try:
+                rating_aggregation = UserSongRating.objects.filter(song=song).aggregate(
+                    total_ratings=Count('rating'),
+                    sum_ratings=Sum('rating')
+                )
+
+                total_ratings = rating_aggregation['total_ratings']
+                sum_ratings = rating_aggregation['sum_ratings']
+
+                if total_ratings > 0:
+                    average_rating = sum_ratings / total_ratings
+                    return JsonResponse({'average_rating': average_rating}, status=200)
+                else:
+                    return JsonResponse({'error': 'No ratings available for this song'}, status=404)
+            except UserSongRating.DoesNotExist:
+                return JsonResponse({'error': 'No ratings available for this song'}, status=404)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)

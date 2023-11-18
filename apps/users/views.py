@@ -8,11 +8,12 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Genre, Song
-from apps.users.files import UploadFileForm
-from apps.users.models import User
-from apps.users.models import UserSongRating
-from apps.users.models import UserPreferences
+
+from songs.models import Genre, Song
+from users.files import UploadFileForm
+from users.models import (User, UserPreferences, 
+                          UserSongRating,Friend,)
+
 
 # Create endpoints
 
@@ -172,6 +173,7 @@ def user_preferences_create(request):
 def hello_github(request):
     return JsonResponse({'message': 'Congrats from Ovatify Team!'}, status=200)
 
+
 @csrf_exempt
 @token_required
 def add_song_rating(request, userid):
@@ -211,7 +213,68 @@ def add_song_rating(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
-    
+
+
+@csrf_exempt
+@token_required
+def remove_friend(request, userid):
+    try:
+        if request.method == 'POST':
+            try:
+                user_id = request.POST.get('user_id')
+                friend_id = request.POST.get('friend_id')
+
+                user = User.objects.get(firebase_uid=user_id)
+                friend = User.objects.get(firebase_uid=friend_id)
+
+                friendship = Friend.objects.filter(user=user, friend=friend).first()
+                if not friendship:
+                    return JsonResponse({'detail': 'Friendship does not exist'}, status=400)
+
+                friendship.delete()
+
+                return JsonResponse({'detail': 'Friend removed successfully'}, status=200)
+
+            except User.DoesNotExist:
+                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
+
+        else:
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@csrf_exempt
+@token_required
+def add_friend(request, userid):
+    try:
+        if request.method == 'POST':
+            try:
+                user_id = request.POST.get('user_id')
+                friend_id = request.POST.get('friend_id')
+
+                user = User.objects.get(firebase_uid=user_id)
+                friend = User.objects.get(firebase_uid=friend_id)
+
+                # Check if the friendship already exists
+                if Friend.objects.filter(user=user, friend=friend).exists():
+                    return JsonResponse({'detail': 'Friendship already exists'}, status=400)
+
+                # Create a new friend instance
+                Friend.objects.create(user=user, friend=friend)
+
+                return JsonResponse({'detail': 'Friend added successfully'}, status=200)
+
+            except User.DoesNotExist:
+                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
+
+        else:
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
 @csrf_exempt
 @token_required
 def edit_song_rating(request, userid):
