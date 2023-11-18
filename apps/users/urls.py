@@ -11,6 +11,7 @@ urlpatterns = [
     path('update-user/', view=views.update_user, name='update-user'),
     path('hello-github/', view=views.hello_github, name='hello-github'),
     path('add-song-rating/', view=views.add_song_rating, name='add-song-rating'),
+    path('edit-song-rating/', view=views.edit_song_rating, name='edit-song-rating'),
 
 
 ]
