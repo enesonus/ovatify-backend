@@ -10,7 +10,9 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
+from songs.models import (Mood, RecordedEnvironment,
+                          Song, Artist, Album, ArtistSong,
+                          AlbumSong, Genre, GenreSong, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
 
 from users.models import User, UserSongRating
@@ -33,26 +35,25 @@ def get_all_songs(request, userid):
 def get_songs(request, userid):
     if request.method == 'GET':
         data = request.GET
-        track_name = data.get('song_name')
+        song_name = data.get('song_name')
 
-        if track_name is None:
+        if song_name is None:
             return JsonResponse({'error': 'Missing parameters'}, status=400)
         try:
             # Use filter instead of get to retrieve multiple songs with the same track name
-            songs = Song.objects.filter(track_name=track_name)
+            songs = Song.objects.filter(name=song_name)
 
             # Convert the list of song objects to a list of dictionaries for JsonResponse
             songs_info = []
             for song in songs:
                 song_info = {
-                    'song_id': song.song_id,
-                    'track_name': song.track_name,
+                    'song_id': song.id,
+                    'song_name': song.name,
                     'release_year': song.release_year,
-                    'length': song.length.total_seconds(),
+                    'duration': song.duration.total_seconds(),
                     'tempo': song.tempo,
-                    'genre': song.genre,
                     'mood': song.mood,
-                    'recommended_environment': song.recommended_environment,
+                    'recorded_environment': song.recorded_environment,
                     'replay_count': song.replay_count,
                     'version': song.version,
                     # Add other fields as needed
@@ -80,17 +81,16 @@ def get_song(request, userid):
         if track_id is None:
             return JsonResponse({'error': 'Missing parameter'}, status=400)
         try:
-            song = Song.objects.get(song_id=track_id)
+            song = Song.objects.get(id=track_id)
             # Convert the song object to a dictionary for JsonResponse
             song_info = {
-                'song_id': song.song_id,
-                'track_name': song.track_name,
+                'id': song.id,
+                'song_name': song.name,
                 'release_year': song.release_year,
-                'length': song.length.total_seconds(),
+                'duration': song.duration.total_seconds(),
                 'tempo': song.tempo,
-                'genre': song.genre,
                 'mood': song.mood,
-                'recommended_environment': song.recommended_environment,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
             }
@@ -124,26 +124,24 @@ def add_song(request, userid):
 
                 if audio_features:
                     audio_features = audio_features[0]
-                    recommended_environment = 'L' if audio_features['liveness'] >= 0.8 else 'S'
-                    tempo = 'F' if audio_features['tempo'] >= 120 else ('M' if 76 <= audio_features['tempo'] < 120 else 'S')
+                    recorded_environment = RecordedEnvironment.LIVE if audio_features['liveness'] >= 0.8 else RecordedEnvironment.STUDIO
+                    tempo = Tempo.FAST if audio_features['tempo'] >= 120 else (Tempo.MEDIUM if 76 <= audio_features['tempo'] < 120 else Tempo.SLOW)
                     energy = audio_features['energy']
                     if 0 <= energy < 0.25:
-                        mood = 'SA'  # Sad
+                        mood = Mood.SAD
                     elif 0.25 <= energy < 0.5:
-                        mood = 'R'  # Relaxed
+                        mood = Mood.RELAXED
                     elif 0.5 <= energy < 0.75:
-                        mood = 'H'  # Happy
+                        mood = Mood.HAPPY
                     else:
-                        mood = 'E'
+                        mood = Mood.EXCITED
                     # Create necessary objects in the database
                     new_song, created = Song.objects.get_or_create(
-                        track_name=track['name'],
+                        name=track['name'],
                         release_year=track['album']['release_date'][:4],
-                        length=track['duration_ms'],
                         tempo=tempo,
                         duration=track['duration_ms'],
-                        recommended_environment=recommended_environment,
-                        genre=track['artists'][0]['genres'][0] if track['artists'][0]['genres'] else '',
+                        recorded_environment=recorded_environment,
                         mood=mood,
                         version=track['album']['release_date'],
                     )
@@ -161,12 +159,12 @@ def add_song(request, userid):
                     for artist in track['artists']:
                         artist_name = artist['name']
                         artist_instance, created = Artist.objects.get_or_create(name=artist_name)
-                        song_artist, created = SongArtist.objects.get_or_create(artist=artist_instance, song=new_song)
+                        song_artist, created = ArtistSong.objects.get_or_create(artist=artist_instance, song=new_song)
 
                     if rating > 0 and rating <= 5:
 
                         try:
-                            user = User.objects.get(user_id=userid)
+                            user = User.objects.get(id=userid)
                             user_song_rating, created = UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
@@ -238,9 +236,9 @@ def import_song_JSON(request, userid):
             return JsonResponse({'error': 'No file provided'}, status=400)
         if isinstance(data, dict):
             data = [data]
-        required_fields = ['track_name', 'release_year', 'length',
+        required_fields = ['name', 'release_year', 'duration',
                            'tempo', 'genre', 'mood',
-                           'recommended_environment', 'duration', 'replay_count', 'version']
+                           'recorded_environment', 'replay_count', 'version']
         for song_data in data:
             # Assuming genre_id is provided in song_data to link Song with Genre
             # return JsonResponse(song_data, safe=False, status=200)
@@ -249,9 +247,9 @@ def import_song_JSON(request, userid):
             genre_name = song_data.get('genre', None)
             genre, created = Genre.objects.get_or_create(genre_name=genre_name)
             song_data['genre'] = genre
-            hours, minutes, seconds = map(int, song_data['length'].split(':'))
-            length_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
-            song_data['length'] = length_timedelta
+            hours, minutes, seconds = map(int, song_data['duration'].split(':'))
+            duration_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
+            song_data['duration'] = duration_timedelta
             song = Song(**song_data)
             song.full_clean()
             song.save()
@@ -312,7 +310,7 @@ def average_song_rating(request):
                 return JsonResponse({'error': 'Missing song id'}, status=400)
             
             try:
-                song = Song.objects.get(song_id=song_id)
+                song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({'error': 'Song not found'}, status=404)
             
