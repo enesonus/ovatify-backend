@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-from apps.songs.models import Song
+from songs.models import Song
 
 
 # Enum Choices

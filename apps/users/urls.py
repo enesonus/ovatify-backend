@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.users import views
+from users import views
 
 urlpatterns = [
     path('get-all/', view=views.get_all_users, name='get-all-users'),
@@ -10,4 +10,6 @@ urlpatterns = [
     path('delete-user/', view=views.delete_user, name='delete-user'),
     path('update-user/', view=views.update_user, name='update-user'),
     path('hello-github/', view=views.hello_github, name='hello-github')
+
+
 ]
