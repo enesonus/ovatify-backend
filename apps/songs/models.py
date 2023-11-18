@@ -2,6 +2,8 @@ from django.db import models
 
 from OVTF_Backend.models import CoreModel
 
+import uuid
+
 
 # Enum Choices
 class Tempo(models.TextChoices):
@@ -28,15 +30,20 @@ class RecordedEnvironment(models.TextChoices):
 class Genre(CoreModel):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    img_url = models.URLField(max_length=300, blank=True)
+    img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
 
 
 class Song(CoreModel):
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(default=uuid.uuid4,
+                          primary_key=True, max_length=200)
     name = models.CharField(max_length=200)
+    genres = models.ManyToManyField('Genre', through='GenreSong')
+    artists = models.ManyToManyField('Artist', through='ArtistSong')
+    albums = models.ManyToManyField('Album', through='AlbumSong')
+    instruments = models.ManyToManyField('Instrument', through='InstrumentSong')
     release_year = models.PositiveIntegerField()
     duration = models.DurationField()
     tempo = models.CharField(max_length=1, choices=Tempo.choices)
@@ -46,7 +53,7 @@ class Song(CoreModel):
                               choices=RecordedEnvironment.choices)
     replay_count = models.PositiveIntegerField(default=0)
     version = models.CharField(max_length=50, blank=True)
-    img_url = models.URLField(max_length=300, blank=True)
+    img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
@@ -56,7 +63,7 @@ class Artist(CoreModel):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
     bio = models.TextField()
-    img_url = models.URLField(max_length=300, blank=True)
+    img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
@@ -66,7 +73,7 @@ class Album(CoreModel):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
     release_date = models.DateField()
-    img_url = models.URLField(max_length=300, blank=True)
+    img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return str(self.title)

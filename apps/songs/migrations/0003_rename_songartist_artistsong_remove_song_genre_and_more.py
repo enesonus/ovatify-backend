@@ -17,6 +17,10 @@ class Migration(migrations.Migration):
         ),
         migrations.RemoveField(
             model_name='song',
+            name='length',
+        ),
+        migrations.RemoveField(
+            model_name='song',
             name='genre',
         ),
     ]
