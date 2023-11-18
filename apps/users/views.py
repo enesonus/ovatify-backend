@@ -9,9 +9,9 @@ from django.utils.dateparse import parse_duration
 from django.views.decorators.csrf import csrf_exempt
 
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Genre, Song
-from apps.users.files import UploadFileForm
-from apps.users.models import User
+from songs.models import Genre, Song
+from users.files import UploadFileForm
+from users.models import User
 
 
 # Create endpoints

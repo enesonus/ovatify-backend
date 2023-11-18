@@ -10,10 +10,9 @@ from django.views.decorators.csrf import csrf_exempt
 
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
-from users.models import UserSongRating
+from songs.models import Song, Artist, Album, SongArtist, AlbumSong, Genre, GenreSong
 from spotipy.oauth2 import SpotifyClientCredentials
-from apps.users.models import User, UserSongRating
+from users.models import User, UserSongRating
 
 
 # Create your views here.
