@@ -11,7 +11,7 @@ class User(CoreModel):
 
     username = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
-    img_url = models.URLField(max_length=300, blank=True)
+    img_url = models.URLField(max_length=300, blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField()
 
