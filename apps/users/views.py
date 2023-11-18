@@ -187,7 +187,7 @@ def add_song_rating(request, userid):
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
 
             try:
-                user = User.objects.get(firebase_uid=userid)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
 
