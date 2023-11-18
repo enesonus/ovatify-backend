@@ -86,8 +86,8 @@
 
 Relationships:
 
-- A User can have multiple UserSongRatings (One-to-Many)
-- A Song can have multiple UserSongRatings (One-to-Many)
+- A User can have multiple UserSongRating (One-to-Many)
+- A Song can have multiple UserSongRating (One-to-Many)
 - A Song can belong to multiple Albums (Many-to-Many), represented by AlbumSong
 - A Song can be by multiple Artists (Many-to-Many), represented by SongArtist
 - A Genre can include many Songs (One-to-Many)

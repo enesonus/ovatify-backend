@@ -14,6 +14,13 @@ class User(CoreModel):
     img_url = models.URLField(max_length=300, blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField()
+    user_preferences = models.OneToOneField("UserPreferences",
+                                            related_name='preferences',
+                                            on_delete=models.CASCADE,
+                                            null=True,)
+    friends = models.ManyToManyField("self", through="Friend",
+                                     symmetrical=True,
+                                     through_fields=("user", "friend"))
 
     def __str__(self):
         return str(self.username)
@@ -24,7 +31,6 @@ class UserSongRating(CoreModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
     rating = models.DecimalField(max_digits=4, decimal_places=2)
-    date_rated = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.user.__str__()} - {self.song.__str__()}"
