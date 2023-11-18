@@ -303,9 +303,15 @@ def edit_song_rating(request, userid):
             except UserSongRating.DoesNotExist:
                 return JsonResponse({'error': 'User rating not found'}, status=404)
             
-            user_rating.rating = rating
-            user_rating.date_rated = rating_date
-            user_rating.save()
+            user_rating.delete()
+
+            new_user_rating = UserSongRating(
+                user=user,
+                song=song,
+                rating=rating,
+                date_rated=rating_date
+            )
+            new_user_rating.save()
 
             return JsonResponse({'message': 'User rating updated successfully'}, status=200)
         else:
