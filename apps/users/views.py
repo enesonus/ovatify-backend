@@ -59,7 +59,8 @@ def login(request, userid):
     if request.method != 'PUT':
         return HttpResponse(status=405)
     try:
-        user = User.objects.get(firebase_uid=userid)
+        #get the user from the database
+        user = User.objects.get(id=userid)
         user.last_login = timezone.now()
         user.save()
     except Exception as e:
@@ -75,13 +76,13 @@ def create_user(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         email: str = data.get('email')
+        #return the email in the response
         if email is None:  # if email is not provided
             return HttpResponse(status=400)
         if User.objects.filter(email=email).exists():  # if user already exists
             return HttpResponse(status=400)
         random_username: str = email.split('@')[0] + str(datetime.now().timestamp()).split('.')[0]
-        user = User(firebase_uid=userid, username=random_username, email=email, last_login=timezone.now())
-        user.save()
+        User.objects.create(id=userid, username=random_username, email=email, last_login=timezone.now())
         return HttpResponse(status=201)
     except Exception as e:
         #TODO logging.("create_user: " + str(e))
@@ -94,7 +95,7 @@ def delete_user(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
-        user = User.objects.get(firebase_uid=userid)
+        user = User.objects.get(id=userid)
         user.delete()
         return HttpResponse(status=204)
     except Exception as e:
@@ -187,7 +188,7 @@ def add_song_rating(request, userid):
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
 
             try:
-                user = User.objects.get(firebase_uid=userid)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
 
@@ -288,7 +289,7 @@ def edit_song_rating(request, userid):
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
             
             try:
-                user = User.objects.get(firebase_uid=userid)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
 
