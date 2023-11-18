@@ -1,7 +1,8 @@
 from django.apps import AppConfig
 
+AppConfig.default = False
+
 
 class SongsConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.songs'
+    name = 'songs'
     label = 'songs'
