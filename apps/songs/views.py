@@ -2,10 +2,8 @@ import json
 from datetime import timedelta
 import os
 import logging
-
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Sum
-
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
@@ -14,7 +12,6 @@ from songs.models import (Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
-
 from users.models import User, UserSongRating
 
 
