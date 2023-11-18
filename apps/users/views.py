@@ -114,9 +114,7 @@ def update_user(request, userid):
         return HttpResponse(status=404)
 
 
-
-
-
-
-
-
+@csrf_exempt
+@token_required
+def hello_github(request):
+    return JsonResponse({'message': 'Hello from Ovatify Team!'}, status=200)
