@@ -13,4 +13,5 @@ urlpatterns = [
     path('user-songs/', view=views.user_songs_view, name='user-songs-view'),
     path('hello-github/', view=views.hello_github, name='hello-github'),
     path('add-song-rating/', view=views.add_song_rating, name='add-song-rating'),
+    path('remove-friend', view=views.remove_friend, name = 'remove-friend'),
 ]
