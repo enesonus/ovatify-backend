@@ -13,12 +13,11 @@
       - SongID (Primary Key)
       - TrackName
       - ReleaseYear
-      - Length
+      - Duration
       - Tempo (with Enum)
       - GenreID (Foreign Key)
       - Mood (with Enum)
-      - Rec. Env. (with Enum)
-      - Duration
+      - Recorded Env. (with Enum)
       - ReplayCount
       - Version
 

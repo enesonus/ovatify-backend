@@ -118,22 +118,21 @@ def update_user(request, userid):
 @token_required
 def user_songs_view(request, user_id):
     try:
-        user_ratings = UserSongRating.objects.filter(user__firebase_uid=user_id)
+        user_ratings = UserSongRating.objects.filter(user__id=user_id)
 
         song_ids = user_ratings.values_list('song_id', flat=True)
 
-        songs = Song.objects.filter(song_id__in=song_ids)
+        songs = Song.objects.filter(id__in=song_ids)
 
         serialized_songs = [
     {
-        'song_id': song.song_id,
-        'track_name': song.track_name,
+        'id': song.id,
+        'name': song.name,
         'release_year': song.release_year,
-        'length': song.length.total_seconds(),  # Convert DurationField to seconds
-        'tempo': song.tempo,
-        'genre': song.genre.name,  # Assuming Genre has a 'name' attribute
+        'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+        'tempo': song.tempo, # Assuming Genre has a 'name' attribute
         'mood': song.mood,
-        'recommended_environment': song.recommended_environment,
+        'recorded_environment': song.recorded_environment,
         'duration': song.duration,
         'replay_count': song.replay_count,
         'version': song.version,
@@ -193,7 +192,7 @@ def add_song_rating(request, userid):
                 return JsonResponse({'error': 'User not found'}, status=404)
 
             try:
-                song = Song.objects.get(song_id=song_id)
+                song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({'error': 'Song not found'}, status=404)
 
@@ -224,8 +223,8 @@ def remove_friend(request, userid):
                 user_id = request.POST.get('user_id')
                 friend_id = request.POST.get('friend_id')
 
-                user = User.objects.get(firebase_uid=user_id)
-                friend = User.objects.get(firebase_uid=friend_id)
+                user = User.objects.get(id=user_id)
+                friend = User.objects.get(id=friend_id)
 
                 friendship = Friend.objects.filter(user=user, friend=friend).first()
                 if not friendship:
@@ -253,8 +252,8 @@ def add_friend(request, userid):
                 user_id = request.POST.get('user_id')
                 friend_id = request.POST.get('friend_id')
 
-                user = User.objects.get(firebase_uid=user_id)
-                friend = User.objects.get(firebase_uid=friend_id)
+                user = User.objects.get(id=user_id)
+                friend = User.objects.get(id=friend_id)
 
                 # Check if the friendship already exists
                 if Friend.objects.filter(user=user, friend=friend).exists():
@@ -294,7 +293,7 @@ def edit_song_rating(request, userid):
                 return JsonResponse({'error': 'User not found'}, status=404)
 
             try:
-                song = Song.objects.get(song_id=song_id)
+                song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({'error': 'Song not found'}, status=404)
             
