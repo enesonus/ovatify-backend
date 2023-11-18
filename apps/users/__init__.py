@@ -1,1 +1,1 @@
-default_app_config = 'vehicle.apps.UsersConfig'
+default_app_config = 'OVTF_Backend.apps.UsersConfig'

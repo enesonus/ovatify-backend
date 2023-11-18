@@ -9,9 +9,10 @@ from django.utils.dateparse import parse_duration
 from django.views.decorators.csrf import csrf_exempt
 
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.models import Genre, Song
-from apps.users.files import UploadFileForm
-from apps.users.models import User, UserSongRating
+
+from songs.models import Genre, Song
+from users.files import UploadFileForm
+from users.models import (User, UserSongRating,)
 
 
 # Create endpoints
@@ -152,3 +153,9 @@ def add_song_rating(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+
+@csrf_exempt
+@token_required
+def hello_github(request):
+    return JsonResponse({'message': 'Hello from Ovatify Team!'}, status=200)
