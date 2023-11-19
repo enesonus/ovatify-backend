@@ -8,7 +8,8 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from songs.models import (Mood, RecordedEnvironment,
+from apps.songs.utils import bulk_get_or_create
+from songs.models import (Instrument, Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -234,22 +235,60 @@ def import_song_JSON(request, userid):
         if isinstance(data, dict):
             data = [data]
         required_fields = ['name', 'release_year', 'duration',
-                           'tempo', 'genre', 'mood',
-                           'recorded_environment', 'replay_count', 'version']
+                           'tempo', 'mood', 'replay_count']
         for song_data in data:
-            # Assuming genre_id is provided in song_data to link Song with Genre
-            # return JsonResponse(song_data, safe=False, status=200)
             if not all(field in song_data for field in required_fields):
                 return HttpResponse(status=400)
-            genre_name = song_data.get('genre', None)
-            genre, created = Genre.objects.get_or_create(name=genre_name)
-            song_data['genre'] = genre
+            recorded_environment = song_data.get('recorded_environment', None)
+            replay_count = song_data.get('replay_count', None)
+            img_url = song_data.get('img_url', None)
+            genre_names = song_data.get('genres', None)
+            artist_names = song_data.get('artists', None)
+            album_names = song_data.get('albums', None)
+            instrument_names = song_data.get('instruments', None)
+            genres, artists, albums, instruments = [], [], [], []
+
+            if img_url:
+                song_data['img_url'] = img_url
+            if recorded_environment:
+                song_data['recorded_environment'] = recorded_environment
+            if replay_count:
+                song_data['replay_count'] = int(replay_count)
+            if genre_names:
+                existing_genres, new_genres = bulk_get_or_create(Genre, genre_names, 'name')
+                genres.extend(existing_genres)
+                genres.extend(new_genres)
+                song_data.pop('genres', None)
+
+            if artist_names:
+                existing_artists, new_artists = bulk_get_or_create(Artist, artist_names, 'name')
+                artists.extend(existing_artists)
+                artists.extend(new_artists)
+                song_data.pop('artists', None)
+
+            if album_names:
+                existing_albums, new_albums = bulk_get_or_create(Album, album_names, 'name')
+                albums.extend(existing_albums)
+                albums.extend(new_albums)
+                song_data.pop('albums', None)
+
+            if instrument_names:
+                existing_instruments, new_instruments = bulk_get_or_create(Instrument, instrument_names, 'name')
+                instruments.extend(existing_instruments)
+                instruments.extend(new_instruments)
+                song_data.pop('instruments', None)
+
             hours, minutes, seconds = map(int, song_data['duration'].split(':'))
             duration_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
             song_data['duration'] = duration_timedelta
+
             song = Song(**song_data)
-            song.full_clean()
             song.save()
+
+            song.genres.set(genres)
+            song.artists.set(artists)
+            song.albums.set(albums)
+            song.instruments.set(instruments)
 
         return HttpResponse(status=201)
     except json.JSONDecodeError as e:

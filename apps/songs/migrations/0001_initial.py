@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ('tempo', models.CharField(choices=[('S', 'Slow'), ('M', 'Medium'), ('F', 'Fast')], max_length=1)),
                 ('mood', models.CharField(choices=[('H', 'Happy'), ('SA', 'Sad'), ('E', 'Excited'), ('R', 'Relaxed')], max_length=2)),
                 ('recommended_environment', models.CharField(choices=[('I', 'Indoor'), ('O', 'Outdoor'), ('S', 'Studio'), ('L', 'Live')], max_length=1)),
-                ('duration', models.PositiveIntegerField()),
+                ('duration', models.DurationField()),
                 ('replay_count', models.PositiveIntegerField(default=0)),
                 ('version', models.CharField(max_length=50)),
                 ('genre', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='songs.genre')),
