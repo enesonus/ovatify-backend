@@ -520,11 +520,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='song',
-            name='duration',
-            field=models.DurationField(),
-        ),
-        migrations.AlterField(
-            model_name='song',
             name='version',
             field=models.CharField(blank=True, max_length=50),
         ),

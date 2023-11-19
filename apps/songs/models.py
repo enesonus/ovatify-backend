@@ -73,8 +73,8 @@ class Artist(CoreModel):
 
 class Album(CoreModel):
     id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=200)
-    release_date = models.DateField()
+    name = models.CharField(max_length=200)
+    release_year = models.PositiveIntegerField(null=True, blank=True)
     img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
