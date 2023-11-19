@@ -1,13 +1,16 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
-from songs.models import Song
+
+from songs.models import Song, Genre, Mood, Tempo
 from users.models import User, UserPreferences, UserSongRating, Friend
+
 
 # Create endpoints
 
@@ -354,3 +357,159 @@ def delete_song_rating(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+
+@csrf_exempt
+@token_required
+def user_songs_with_genre(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        genre_name: str = data.get('genre_name')
+        if genre_name is None:  # if Genre Name is not provided
+            return HttpResponse(status=400)
+        genre_name = genre_name.title()
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__genres__name=genre_name)
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def user_songs_with_artist(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        artist_name: str = data.get('artist_name')
+        if artist_name is None:  # if Artist Name is not provided
+            return HttpResponse(status=400)
+        artist_name = artist_name.title()
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__artists__name=artist_name)
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+
+@csrf_exempt
+@token_required
+def user_songs_with_tempo(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        tempo_name: str = data.get('tempo_name')
+        if tempo_name is None:  # if Tempo Name is not provided
+            return HttpResponse(status=400)
+        tempo_name = tempo_name.title()
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__tempo=tempo_name)
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def user_songs_with_mood(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        mood_name: str = data.get('mood_name')
+        if mood_name is None:  # if Mood Name is not provided
+            return HttpResponse(status=400)
+        mood_name = mood_name.title()
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__mood=mood_name)
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_all_user_songs(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        users = UserSongRating.objects.all().values()
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+    context = {
+        "usersongs": list(users)
+    }
+    return JsonResponse(context, status=200)
