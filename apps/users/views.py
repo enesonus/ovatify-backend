@@ -280,12 +280,11 @@ def add_friend(request, userid):
 def edit_song_rating(request, userid):
     try:
         if request.method == 'PUT':
-            data = request.data
+            data = json.loads(request.body, encoding='utf-8')
             song_id = data.get('song_id')
-            rating = data.get('rating')
-            rating_date = datetime.now()
+            rating = float(data.get('rating'))
 
-            if userid is None or song_id is None or rating is None or rating_date is None:
+            if userid is None or song_id is None or rating is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
             
             try:
@@ -309,11 +308,10 @@ def edit_song_rating(request, userid):
                 user=user,
                 song=song,
                 rating=rating,
-                date_rated=rating_date
             )
             new_user_rating.save()
 
-            return JsonResponse({'message': 'User rating updated successfully'}, status=200)
+            return JsonResponse({'message': 'User rating updated successfully'}, status=201)
         else:
             return JsonResponse({'error': 'Invalid method'}, status=400)
     except KeyError as e:
