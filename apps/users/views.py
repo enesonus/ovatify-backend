@@ -324,9 +324,8 @@ def delete_song_rating(request, userid):
         if request.method == 'DELETE':
             data = request.GET
             song_id = data.get('song_id')
-            rating = data.get('rating')
 
-            if userid is None or song_id is None or rating is None:
+            if userid is None or song_id is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
             
             try:
