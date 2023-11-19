@@ -16,6 +16,5 @@ urlpatterns = [
     path('remove-friend', view=views.remove_friend, name = 'remove-friend'),
     path('add-friend/', view=views.add_friend, name='add_friend'),
     path('edit-song-rating/', view=views.edit_song_rating, name='edit-song-rating'),
-
-
+    path('delete-song-rating/', view=views.delete_song_rating, name='delete-song-rating'), 
 ]
