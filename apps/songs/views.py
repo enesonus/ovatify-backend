@@ -150,7 +150,7 @@ def add_song(request, userid):
                         if 'genres' in artist and artist['genres']:
                             for genre_name in artist['genres']:
                                 if genre_name:
-                                    genre, created = Genre.objects.get_or_create(genre_name=genre_name)
+                                    genre, created = Genre.objects.get_or_create(name=genre_name)
                                     genre_song, created = GenreSong.objects.get_or_create(genre=genre, song=new_song)
 
                     for artist in track['artists']:
@@ -242,7 +242,7 @@ def import_song_JSON(request, userid):
             if not all(field in song_data for field in required_fields):
                 return HttpResponse(status=400)
             genre_name = song_data.get('genre', None)
-            genre, created = Genre.objects.get_or_create(genre_name=genre_name)
+            genre, created = Genre.objects.get_or_create(name=genre_name)
             song_data['genre'] = genre
             hours, minutes, seconds = map(int, song_data['duration'].split(':'))
             duration_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
@@ -273,7 +273,7 @@ def create_genre(request):
         genre_name = data.get('genre_name')
         if genre_name is None:
             return HttpResponse(status=400)
-        genre = Genre(genre_name=genre_name)
+        genre = Genre(name=genre_name)
         genre.save()
         return HttpResponse(status=201)
     except Exception as e:
