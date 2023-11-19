@@ -1,19 +1,13 @@
 import json
 import logging
-from datetime import datetime, timedelta
-from django.core.exceptions import ValidationError
+from datetime import datetime
 from django.db import IntegrityError
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-
 from OVTF_Backend.firebase_auth import token_required
-
-from songs.models import Genre, Song
-from users.files import UploadFileForm
-from users.models import (User, UserPreferences, 
-                          UserSongRating,Friend,)
-
+from songs.models import Song
+from users.models import User, UserPreferences, UserSongRating, Friend
 
 # Create endpoints
 
@@ -179,12 +173,11 @@ def hello_github(request):
 def add_song_rating(request, userid):
     try:
         if request.method == 'POST':
-            data = request.POST
+            data = json.loads(request.body, encoding='utf-8')
             song_id = data.get('song_id')
-            rating = data.get('rating')
-            rating_date = datetime.now()
+            rating = float(data.get('rating'))
 
-            if userid is None or song_id is None or rating is None or rating_date is None:
+            if userid is None or song_id is None or rating is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
 
             try:
@@ -198,18 +191,21 @@ def add_song_rating(request, userid):
                 return JsonResponse({'error': 'Song not found'}, status=404)
 
             try:
-                user_rating, created_rating = UserSongRating.objects.get_or_create(user=user, song=song, rating=rating, date_rated=rating_date)
+                user_rating, created_rating = UserSongRating.objects.get_or_create(user=user, song=song, rating=rating)
 
                 if not created_rating:
                     return JsonResponse({'error': 'User rating already exists'}, status=400)
-                return JsonResponse({'message': 'User rating added successfully'}, status=200)
+                return JsonResponse({'message': 'User rating added successfully'}, status=201)
             except IntegrityError:
-                return JsonResponse({'error': 'Integrity Error: Invalid user or song reference'}, status=400)
+                return JsonResponse({'error': 'Integrity Error: Invalid user or song reference'}, status=404)
         else:
             return JsonResponse({'error': 'Invalid method'}, status=400)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
-        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+        return JsonResponse({'error': f'KeyError occurred : {str(e)}'}, status=500)
+    except ValueError as e:
+        logging.error(f"A ValueError occurred: {str(e)}")
+        return JsonResponse({'error': f'Invalid data format: {str(e)}'}, status=400)
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
