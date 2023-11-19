@@ -113,12 +113,13 @@ def update_user(request, userid):
 @token_required
 def user_songs_view(request, user_id):
     try:
-        user_ratings = UserSongRating.objects.filter(user__id=user_id)
+        user_ratings = UserSongRating.objects.filter(user=user_id)
 
-        song_ids = user_ratings.values_list('song_id', flat=True)
-
+        song_ids = user_ratings.values_list('song', flat=True)
+        print(song_ids)
         songs = Song.objects.filter(id__in=song_ids)
-
+        if songs is None or len(songs) == 0:
+            return JsonResponse({'error': "no song found"},status = 404)
         serialized_songs = [
     {
         'id': song.id,
@@ -141,17 +142,14 @@ def user_songs_view(request, user_id):
 
 @csrf_exempt
 @token_required
-def user_preferences_create(request):
+def user_preferences_create(request,userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
-
-        user, created = User.objects.get_or_create(username=data.get('user'))
-
-        user_preferences, preferences_created = UserPreferences.objects.get_or_create(user=user)
-
-        user_preferences.data_processing_consent = data.get('data_processing_consent', True)
-        user_preferences.data_sharing_consent = data.get('data_sharing_consent', True)
-        user_preferences.save()
+        try:
+            user= User.objects.get(username=data.get('user'))
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'user not found'}, status=404)
+        user_preferences,preferences_created= UserPreferences.objects.get_or_create(user=user, data_processing_consent=data.get('data_processing_consent', True),data_sharing_consent = data.get('data_sharing_consent', True))
 
         if preferences_created:
             return JsonResponse({'message': 'UserPreferences created successfully.'}, status=201)
