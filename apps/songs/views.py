@@ -267,9 +267,9 @@ def import_song_JSON(request, userid):
                 song_data.pop('artists', None)
 
             if album_names:
-                existing_albums, new_albums = bulk_get_or_create(Album, album_names, 'name')
-                albums.extend(existing_albums)
-                albums.extend(new_albums)
+                for album_name in album_names:
+                    album, created = Album.objects.get_or_create(name=album_name, release_year=song_data['release_year'])
+                    albums.append(album)
                 song_data.pop('albums', None)
 
             if instrument_names:
