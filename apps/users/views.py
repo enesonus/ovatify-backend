@@ -316,3 +316,42 @@ def edit_song_rating(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    
+@csrf_exempt
+@token_required
+def delete_song_rating(request, userid):
+    try:
+        if request.method == 'DELETE':
+            data = request.GET
+            song_id = data.get('song_id')
+            rating = data.get('rating')
+
+            if userid is None or song_id is None or rating is None:
+                return JsonResponse({'error': 'Missing parameter'}, status=400)
+            
+            try:
+                user = User.objects.get(id=userid)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+
+            try:
+                song = Song.objects.get(id=song_id)
+            except Song.DoesNotExist:
+                return JsonResponse({'error': 'Song not found'}, status=404)
+            
+            try:
+                user_rating = UserSongRating.objects.get(user=user, song=song)
+            except UserSongRating.DoesNotExist:
+                return JsonResponse({'error': 'User rating not found'}, status=404)
+            
+            user_rating.delete()
+
+            return JsonResponse({'message': 'User rating deleted successfully'}, status=201)
+        else:
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
