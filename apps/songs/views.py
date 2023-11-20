@@ -145,24 +145,24 @@ def add_song(request, userid):
                         version=track['album']['release_date'],
                     )
 
-                    if not created:
-                        return JsonResponse({'message': 'Song already exists'}, status=403)
-                    for artist in track['artists']:
-                        if 'genres' in artist and artist['genres']:
-                            for genre_name in artist['genres']:
-                                if genre_name:
-                                    genre, created = Genre.objects.get_or_create(name=genre_name)
-                                    new_song.genres.add(genre)
+                    if created:
+                        for artist in track['artists']:
+                            if 'genres' in artist and artist['genres']:
+                                for genre_name in artist['genres']:
+                                    if genre_name:
+                                        genre, created = Genre.objects.get_or_create(name=genre_name)
+                                        new_song.genres.add(genre)
 
-                    for artist in track['artists']:
-                        artist_name = artist['name']
-                        artist_instance, created = Artist.objects.get_or_create(name=artist_name)
-                        new_song.artists.add(artist_instance)
-                    
+                        for artist in track['artists']:
+                            artist_name = artist['name']
+                            artist_instance, created = Artist.objects.get_or_create(name=artist_name)
+                            new_song.artists.add(artist_instance)
+
                     if rating > 0 and rating <= 5:
                         try:
                             user = User.objects.get(id=userid)
-                            user_song_rating, created = UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
+                            user_song_rating, created = \
+                                UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
 
