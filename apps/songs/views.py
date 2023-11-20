@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 import os
 import logging
 from django.http import JsonResponse, HttpResponse
@@ -138,16 +138,16 @@ def add_song(request, userid):
                         name=track['name'],
                         release_year=track['album']['release_date'][:4],
                         tempo=tempo,
-                        duration=timedelta(track['duration_ms'] / 1000),
+                        duration=str(timedelta(seconds=int(track['duration_ms']/1000))),
                         recorded_environment=recorded_environment,
                         mood=mood,
+                        img_url=track['album']['images'][0]['url'],
                         version=track['album']['release_date'],
                         img_url=track['album']['images'][0]['url']
                     )
 
                     if not created:
                         return JsonResponse({'message': 'Song already exists'}, status=403)
-
                     for artist in track['artists']:
                         if 'genres' in artist and artist['genres']:
                             for genre_name in artist['genres']:
@@ -166,7 +166,6 @@ def add_song(request, userid):
                     new_song.albums.add(album_instance)
 
                     if rating > 0 and rating <= 5:
-
                         try:
                             user = User.objects.get(id=userid)
                             user_song_rating, created = UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
