@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.utils import bulk_get_or_create
+from apps.songs.utils import bulk_get_or_create, get_artist_bio, clean_html_tags
 from songs.models import (Instrument, Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo)
@@ -119,6 +119,7 @@ def add_song(request, userid):
 
             if track:
                 audio_features = sp.audio_features([track['id']])
+                is_song_created_str = ''
 
                 if audio_features:
                     audio_features = audio_features[0]
@@ -146,6 +147,7 @@ def add_song(request, userid):
                     )
 
                     if created:
+                        is_song_created_str = 'and song is created '
                         for artist in track['artists']:
                             if 'genres' in artist and artist['genres']:
                                 for genre_name in artist['genres']:
@@ -155,8 +157,17 @@ def add_song(request, userid):
 
                         for artist in track['artists']:
                             artist_name = artist['name']
-                            artist_instance, created = Artist.objects.get_or_create(name=artist_name)
+                            artist_bio = get_artist_bio(artist_name)
+                            artist_img_url = artist['images'][0]['url'] if 'images' in artist else None
+                            artist_instance, created = \
+                                Artist.objects.get_or_create(name=artist_name,
+                                                             img_url=artist_img_url,
+                                                             bio=artist_bio)
                             new_song.artists.add(artist_instance)
+
+                        album_name= track['album']['name']
+                        album_instance, created = Album.objects.get_or_create(name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
+                        new_song.albums.add(album_instance)
 
                     if rating > 0 and rating <= 5:
                         try:
@@ -166,7 +177,7 @@ def add_song(request, userid):
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
 
-                    return JsonResponse({'message': 'Song details fetched successfully'}, status=200)
+                    return JsonResponse({'message': f'Rating is added {is_song_created_str}successfully'}, status=201)
                 else:
                     return JsonResponse({'error': 'No audio features found for the song'}, status=400)
             else:

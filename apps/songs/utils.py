@@ -1,5 +1,8 @@
 from typing import Tuple, List
 from django.db.models import Model
+import requests
+from bs4 import BeautifulSoup
+import os
 
 
 def bulk_get_or_create(model: Model, data: List, unique_field: str) -> Tuple[List[Model], List[Model]]:
@@ -20,4 +23,43 @@ def bulk_get_or_create(model: Model, data: List, unique_field: str) -> Tuple[Lis
 
     # Step 4: Combine existing and new records
     return existing_records, new_records
+
+def get_artist_bio(artist_name):
+    base_url = "http://ws.audioscrobbler.com/2.0/"
+    
+    # Specify the Last.fm API method for artist.getInfo
+    method = "artist.getInfo"
+    
+    # Make a request to the Last.fm API
+    response = requests.get(base_url, params={
+        'method': method,
+        'artist': artist_name,
+        'api_key': os.getenv('LAST_FM_API_KEY'),
+        'format': 'json'
+    })
+
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Parse the JSON response
+        artist_info = response.json()
+
+        # Extract the biography from the response
+        if 'artist' in artist_info and 'bio' in artist_info['artist']:
+            bio = artist_info['artist']['bio']['summary']
+            return clean_html_tags(bio)
+
+    else:
+        return ""
+
+def clean_html_tags(text_with_tags):
+    # Parse the HTML using BeautifulSoup
+    soup = BeautifulSoup(text_with_tags, 'html.parser')
+
+    # Extract the text without HTML tags
+    cleaned_text = soup.get_text()
+
+    # Remove the specific text "Read more on Last.fm"
+    cleaned_text = cleaned_text.replace('Read more on Last.fm', '').strip()
+
+    return cleaned_text
 
