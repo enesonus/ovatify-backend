@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 import os
 import logging
 from django.http import JsonResponse, HttpResponse
@@ -104,7 +104,7 @@ def get_song(request, userid):
 def add_song(request, userid):
     try:
         if request.method == 'POST':
-            data = request.POST
+            data = json.loads(request.body.decode('utf-8'))
             spotify_id = data.get('spotify_id')  # Add this line to get Spotify ID from the request
             rating = data.get('rating')
 
@@ -138,29 +138,28 @@ def add_song(request, userid):
                         name=track['name'],
                         release_year=track['album']['release_date'][:4],
                         tempo=tempo,
-                        duration=track['duration_ms'],
+                        duration=str(timedelta(seconds=int(track['duration_ms']/1000))),
                         recorded_environment=recorded_environment,
                         mood=mood,
+                        img_url=track['album']['images'][0]['url'],
                         version=track['album']['release_date'],
                     )
 
                     if not created:
                         return JsonResponse({'message': 'Song already exists'}, status=403)
-
                     for artist in track['artists']:
                         if 'genres' in artist and artist['genres']:
                             for genre_name in artist['genres']:
                                 if genre_name:
                                     genre, created = Genre.objects.get_or_create(name=genre_name)
-                                    genre_song, created = GenreSong.objects.get_or_create(genre=genre, song=new_song)
+                                    new_song.genres.add(genre)
 
                     for artist in track['artists']:
                         artist_name = artist['name']
                         artist_instance, created = Artist.objects.get_or_create(name=artist_name)
-                        song_artist, created = ArtistSong.objects.get_or_create(artist=artist_instance, song=new_song)
-
+                        new_song.artists.add(artist_instance)
+                    
                     if rating > 0 and rating <= 5:
-
                         try:
                             user = User.objects.get(id=userid)
                             user_song_rating, created = UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
