@@ -16,5 +16,10 @@ urlpatterns = [
     path('remove-friend/', view=views.remove_friend, name = 'remove-friend'),
     path('add-friend/', view=views.add_friend, name='add_friend'),
     path('edit-song-rating/', view=views.edit_song_rating, name='edit-song-rating'),
-    path('delete-song-rating/', view=views.delete_song_rating, name='delete-song-rating'), 
+    path('delete-song-rating/', view=views.delete_song_rating, name='delete-song-rating'),
+    path('get-songs-genre/', view=views.user_songs_with_genre, name='get-songs-genre'),
+    path('get-songs-tempo/', view=views.user_songs_with_tempo, name='get-songs-tempo'),
+    path('get-songs-artist/', view=views.user_songs_with_artist, name='get-songs-artist'),
+    path('get-songs-mood/', view=views.user_songs_with_mood, name='get-songs-mood'),
+    path('get-recently-added-songs/', view=views.get_recently_added_songs, name='get-recently-added-songs'),
 ]
