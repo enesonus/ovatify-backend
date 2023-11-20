@@ -22,4 +22,9 @@ urlpatterns = [
     path('get-songs-artist/', view=views.user_songs_with_artist, name='get-songs-artist'),
     path('get-songs-mood/', view=views.user_songs_with_mood, name='get-songs-mood'),
     path('get-recently-added-songs/', view=views.get_recently_added_songs, name='get-recently-added-songs'),
+    path('get-favorite-songs/', view=views.get_favorite_songs, name='get-favorite-songs'),
+    path('get-favorite-genres/', view=views.get_favorite_genres, name='get-favorite-genres'),
+    path('get-favorite-artists/', view=views.get_favorite_artists, name='get-favorite-artists'),
+    path('get-favorite-moods/', view=views.get_favorite_moods, name='get-favorite-moods'),
+    path('get-favorite-tempos/', view=views.get_favorite_tempo, name='get-favorite-tempo'),
 ]
