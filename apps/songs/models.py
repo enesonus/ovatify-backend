@@ -45,7 +45,7 @@ class Song(CoreModel):
     albums = models.ManyToManyField('Album', through='AlbumSong')
     instruments = models.ManyToManyField('Instrument',
                                          through='InstrumentSong')
-    release_year = models.PositiveIntegerField()
+    release_year = models.PositiveIntegerField(blank=True)
     duration = models.DurationField()
     tempo = models.CharField(max_length=1, choices=Tempo.choices)
     mood = models.CharField(max_length=2, choices=Mood.choices)
@@ -74,7 +74,7 @@ class Artist(CoreModel):
 class Album(CoreModel):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
-    release_year = models.PositiveIntegerField(null=True, blank=True)
+    release_year = models.PositiveIntegerField(blank=True)
     img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):

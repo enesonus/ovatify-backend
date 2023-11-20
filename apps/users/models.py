@@ -53,3 +53,16 @@ class Friend(CoreModel):
 
     class Meta:
         unique_together = (("user", "friend"),)
+
+
+class FriendGroup(CoreModel):
+    name = models.CharField(max_length=200)
+    description = models.CharField(max_length=500,
+                                   blank=True, null=True)
+    img_url = models.URLField(max_length=300,
+                              blank=True, null=True)
+    friends = models.ManyToManyField(User, related_name='friend_groups')
+    # Do not forget to add created_by(this field is in CoreModel) to this model while creating it 
+
+    def __str__(self):
+        return self.name
