@@ -26,5 +26,5 @@ urlpatterns = [
     path('get-favorite-genres/', view=views.get_favorite_genres, name='get-favorite-genres'),
     path('get-favorite-artists/', view=views.get_favorite_artists, name='get-favorite-artists'),
     path('get-favorite-moods/', view=views.get_favorite_moods, name='get-favorite-moods'),
-    path('get-favorite-tempos/', view=views.get_favorite_tempo, name='get-favorite-tempo'),
+    path('get-favorite-tempos/', view=views.get_favorite_tempos, name='get-favorite-tempo'),
 ]
