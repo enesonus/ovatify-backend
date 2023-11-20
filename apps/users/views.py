@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import Counter
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -540,3 +541,132 @@ def get_recently_added_songs(request, userid):
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_favorite_songs(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+                'img_url': song.img_url,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_favorite_genres(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        user = User.objects.get(id=userid)
+        song_ratings = user.usersongrating_set.prefetch_related('song__genres').order_by('-rating')[:number_of_songs]
+        genre_counts = Counter()
+        for song_rating in song_ratings:
+            for genre in song_rating.song.genres.all():
+                genre_counts[genre.name] += 1
+
+        return JsonResponse(dict(genre_counts), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_favorite_artists(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        user = User.objects.get(id=userid)
+        song_ratings = user.usersongrating_set.prefetch_related('song__artists').order_by('-rating')[:number_of_songs]
+        artist_counts = Counter()
+        for song_rating in song_ratings:
+            for artist in song_rating.song.artists.all():
+                artist_counts[artist.name] += 1
+
+        return JsonResponse(dict(artist_counts), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_favorite_moods(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        user = User.objects.get(id=userid)
+        song_ratings = user.usersongrating_set.prefetch_related('song__mood').order_by('-rating')[
+                       :number_of_songs]
+        mood_counts = Counter()
+        for song_rating in song_ratings:
+            mood_counts[song_rating.song.mood.label] += 1
+
+        return JsonResponse(dict(mood_counts), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@token_required
+def get_favorite_tempos(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        user = User.objects.get(id=userid)
+        song_ratings = user.usersongrating_set.prefetch_related('song__tempo').order_by('-rating')[
+                       :number_of_songs]
+        tempo_counts = Counter()
+        for song_rating in song_ratings:
+            tempo_counts[song_rating.song.tempo.label] += 1
+
+        return JsonResponse(dict(tempo_counts), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
