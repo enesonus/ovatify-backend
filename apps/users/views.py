@@ -511,3 +511,32 @@ def get_all_user_songs(request, userid):
         "usersongs": list(users)
     }
     return JsonResponse(context, status=200)
+
+
+@csrf_exempt
+@token_required
+def get_recently_added_songs(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        songs = user.usersongrating_set.prefetch_related('song').order_by('-created_at')[:10]
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
+                'tempo': str(song.tempo.label),
+                'mood': str(song.mood.label),
+                'recorded_environment': str(song.recorded_environment.label),
+                'replay_count': song.replay_count,
+                'version': song.version,
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
