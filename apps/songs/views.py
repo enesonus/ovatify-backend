@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import os
 import logging
 from django.http import JsonResponse, HttpResponse
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
@@ -14,6 +14,8 @@ from songs.models import (Instrument, Mood, RecordedEnvironment,
                           AlbumSong, Genre, GenreSong, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
 from users.models import User, UserSongRating
+from fuzzywuzzy import fuzz
+from django.core.serializers import serialize
 
 
 # Create your views here.
@@ -27,45 +29,82 @@ def get_all_songs(request, userid):
     }
     return JsonResponse(context, status=200)
 
-
 @csrf_exempt
 @token_required
 def get_songs(request, userid):
     if request.method == 'GET':
         data = request.GET
-        song_name = data.get('song_name')
+        search_string = data.get('search_string', '')
 
-        if song_name is None:
+        search_fields = ['name', 'albums', 'artists']
+
+        if not search_string or not search_fields:
             return JsonResponse({'error': 'Missing parameters'}, status=400)
-        try:
-            # Use filter instead of get to retrieve multiple songs with the same track name
-            songs = Song.objects.filter(name=song_name)
 
-            # Convert the list of song objects to a list of dictionaries for JsonResponse
-            songs_info = []
+        # Dictionary to store match counts for each song
+        match_counts = {}
+
+        # Filter songs based on the specified search fields
+        for field in search_fields:
+            # Split the search string into words
+            search_words = search_string.split()
+
+            # Use Q objects to build an OR query for each word in the search string
+            query = Q()
+            for word in search_words:
+                # Filter based on related model fields for ForeignKey fields
+                if field == 'artists':
+                    query |= Q(**{f'{field}__name__icontains': word})
+                elif field == 'albums':
+                    query |= Q(**{f'{field}__name__icontains': word})
+                else:
+                    query |= Q(**{f'{field}__icontains': word})
+
+            # Apply the query to filter songs
+            songs = Song.objects.filter(query)
+
+            # Concatenate song name, genre, album name, and artist's name for each instance
             for song in songs:
-                song_info = {
-                    'song_id': song.id,
-                    'song_name': song.name,
-                    'release_year': song.release_year,
-                    'duration': song.duration.total_seconds(),
-                    'tempo': song.tempo,
-                    'mood': song.mood,
-                    'recorded_environment': song.recorded_environment,
-                    'replay_count': song.replay_count,
-                    'version': song.version,
-                    # Add other fields as needed
-                }
-                songs_info.append(song_info)
+                genres = [genre.name for genre in song.genres.all()]
+                albums = [album.name for album in song.albums.all()]
+                artists = [artist.name for artist in song.artists.all()]
 
-            if songs_info:
-                return JsonResponse({'message': 'Songs found', 'songs_info': songs_info}, status=200)
-            else:
-                return JsonResponse({'error': 'Songs not found'}, status=404)
+                instance_str = f"{song.name} {', '.join(albums)} {', '.join(artists)}"
 
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {str(e)}")
-            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+                # Perform similarity check using fuzzywuzzy's partial_ratio
+                match_ratio = fuzz.partial_ratio(search_string.lower(), instance_str.lower())
+
+                # Store match ratio for each song
+                if song.id not in match_counts:
+                    match_counts[song.id] = 0
+
+                match_counts[song.id] += match_ratio
+
+        # Sort the songs based on match ratios in descending order
+        sorted_songs = sorted(match_counts.items(), key=lambda item: item[1], reverse=True)
+
+        # Convert the sorted list to a list of song dictionaries for JsonResponse
+        songs_info = []
+        for song_id, match_ratio in sorted_songs:
+            song = Song.objects.get(pk=song_id)
+            song_info = {
+                'song_id': song.id,
+                'song_name': song.name,
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
+                'replay_count': song.replay_count,
+                'version': song.version,
+                'album': albums,
+                'artist': artists,
+                'genres': genres,
+            }
+            songs_info.append(song_info)
+
+        return JsonResponse({'message': 'Songs found', 'songs_info': songs_info}, status=200)
+
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
 
@@ -104,9 +143,9 @@ def get_song(request, userid):
 def add_song(request, userid):
     try:
         if request.method == 'POST':
-            data = json.loads(request.body.decode('utf-8'))
+            data = json.loads(request.body, encoding='utf-8')
             spotify_id = data.get('spotify_id')  # Add this line to get Spotify ID from the request
-            rating = data.get('rating')
+            rating = float(data.get('rating'))
 
             if not spotify_id:
                 return JsonResponse({'error': 'Spotify ID is required'}, status=400)
@@ -176,6 +215,8 @@ def add_song(request, userid):
                                 UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
+                        
+                    print(new_song)
 
                     return JsonResponse({'message': f'Rating is added {is_song_created_str}successfully'}, status=201)
                 else:
