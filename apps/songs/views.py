@@ -97,9 +97,9 @@ def get_songs(request, userid):
                 'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
-                'album': albums,
-                'artist': artists,
-                'genres': genres,
+                'album': [album.name for album in song.albums.all()],
+                'artist': [artist.name for artist in song.artists.all()],
+                'genres': [genre.name for genre in song.genres.all()],
             }
             songs_info.append(song_info)
 
