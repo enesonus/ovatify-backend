@@ -9,8 +9,9 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 
-from songs.models import Song, Genre, Mood, Tempo
+from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong
 from users.models import User, UserPreferences, UserSongRating, Friend
+
 
 
 # Create endpoints
@@ -369,21 +370,34 @@ def user_songs_with_genre(request, userid):
         if genre_name is None:  # if Genre Name is not provided
             return HttpResponse(status=400)
         genre_name = genre_name.title()
+        number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__genres__name=genre_name)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
+        matching_songs = []
+        for song in songs:
+            song_genre_table = song.genresong_set.prefetch_related('genre').all()
+            all_genres = [genre_song.genre for genre_song in song_genre_table]
+            for genre in all_genres:
+                if genre.name == genre_name:
+                    matching_songs.append(song)
+                    break
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
+                'img_url': song.img_url
             }
-            for song in songs
+            for song in matching_songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
@@ -403,21 +417,34 @@ def user_songs_with_artist(request, userid):
         if artist_name is None:  # if Artist Name is not provided
             return HttpResponse(status=400)
         artist_name = artist_name.title()
+        number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__artists__name=artist_name)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
+        matching_songs = []
+        for song in songs:
+            song_artist_table = song.artistsong_set.prefetch_related('artist').all()
+            all_artists = [artist_song.artist for artist_song in song_artist_table]
+            for artist in all_artists:
+                if artist.name == artist_name:
+                    matching_songs.append(song)
+                    break
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
+                'img_url': song.img_url
             }
-            for song in songs
+            for song in matching_songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
@@ -440,21 +467,30 @@ def user_songs_with_tempo(request, userid):
         if tempo_name is None:  # if Tempo Name is not provided
             return HttpResponse(status=400)
         tempo_name = tempo_name.title()
+        number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__tempo=tempo_name)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
+        matching_songs = []
+        for song in songs:
+            if song.tempo == tempo_name:
+                matching_songs.append(song)
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
+                'img_url': song.img_url
             }
-            for song in songs
+            for song in matching_songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
@@ -474,21 +510,30 @@ def user_songs_with_mood(request, userid):
         if mood_name is None:  # if Mood Name is not provided
             return HttpResponse(status=400)
         mood_name = mood_name.title()
+        number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').all().filter(song__mood=mood_name)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
+        matching_songs = []
+        for song in songs:
+            if song.mood == mood_name:
+                matching_songs.append(song)
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
+                'img_url': song.img_url
             }
-            for song in songs
+            for song in matching_songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
@@ -520,25 +565,33 @@ def get_recently_added_songs(request, userid):
     if request.method != 'GET':
         return HttpResponse(status=405)
     try:
+        data = json.loads(request.body.decode('utf-8'))
+        number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').order_by('-created_at')[:10]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-created_at')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings] # Get the song objects from the ratings
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
+                'img_url': song.img_url
             }
             for song in songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -551,26 +604,32 @@ def get_favorite_songs(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        songs = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
+        # ratings = [song_rating.rating for song_rating in user_songs_ratings]  # In case we want to retrieve ratings
         serialized_songs = [
             {
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': str(song.tempo.label),
-                'mood': str(song.mood.label),
-                'recorded_environment': str(song.recorded_environment.label),
+                'tempo': song.tempo,
+                'mood': song.mood,
+                'recorded_environment': song.recorded_environment,
                 'replay_count': song.replay_count,
                 'version': song.version,
-                'img_url': song.img_url,
+                'img_url': song.img_url
             }
             for song in songs
         ]
-        return JsonResponse({'songs': serialized_songs}, status=200)
+        return JsonResponse({'songs': serialized_songs},   status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -583,11 +642,16 @@ def get_favorite_genres(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        song_ratings = user.usersongrating_set.prefetch_related('song__genres').order_by('-rating')[:number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
         genre_counts = Counter()
-        for song_rating in song_ratings:
-            for genre in song_rating.song.genres.all():
+        for song in songs:
+            song_genre_table = song.genresong_set.prefetch_related('genre').all()
+            all_genres = [genre_song.genre for genre_song in song_genre_table]
+            for genre in all_genres:
                 genre_counts[genre.name] += 1
 
         return JsonResponse(dict(genre_counts), status=200)
@@ -607,11 +671,16 @@ def get_favorite_artists(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        song_ratings = user.usersongrating_set.prefetch_related('song__artists').order_by('-rating')[:number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
         artist_counts = Counter()
-        for song_rating in song_ratings:
-            for artist in song_rating.song.artists.all():
+        for song in songs:
+            song_artist_table = song.artistsong_set.prefetch_related('artist').all()
+            all_artists = [artist_song.artist for artist_song in song_artist_table]
+            for artist in all_artists:
                 artist_counts[artist.name] += 1
 
         return JsonResponse(dict(artist_counts), status=200)
@@ -631,12 +700,14 @@ def get_favorite_moods(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        song_ratings = user.usersongrating_set.prefetch_related('song__mood').order_by('-rating')[
-                       :number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
         mood_counts = Counter()
-        for song_rating in song_ratings:
-            mood_counts[song_rating.song.mood.label] += 1
+        for song in songs:
+            mood_counts[song.mood] += 1
 
         return JsonResponse(dict(mood_counts), status=200)
     except User.DoesNotExist:
@@ -654,12 +725,14 @@ def get_favorite_tempos(request, userid):
     try:
         data = json.loads(request.body.decode('utf-8'))
         number_of_songs: int = data.get('number_of_songs')
+        if type(number_of_songs) != int or number_of_songs < 1:
+            raise ValueError('Invalid number of songs')
         user = User.objects.get(id=userid)
-        song_ratings = user.usersongrating_set.prefetch_related('song__tempo').order_by('-rating')[
-                       :number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
         tempo_counts = Counter()
-        for song_rating in song_ratings:
-            tempo_counts[song_rating.song.tempo.label] += 1
+        for song in songs:
+            tempo_counts[song.tempo] += 1
 
         return JsonResponse(dict(tempo_counts), status=200)
     except User.DoesNotExist:
@@ -669,4 +742,20 @@ def get_favorite_tempos(request, userid):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@csrf_exempt
+@token_required
+def get_all_song_genres(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        genresong = ArtistSong.objects.all().values()
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+    context = {
+        "GenreSongRelation": list(genresong)
+    }
+    return JsonResponse(context, status=200)
 
