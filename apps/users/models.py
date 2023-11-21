@@ -9,7 +9,7 @@ from songs.models import Song
 class User(CoreModel):
     id = models.CharField(max_length=200, primary_key=True)
 
-    username = models.CharField(max_length=150)
+    username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
     img_url = models.URLField(max_length=300, blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
