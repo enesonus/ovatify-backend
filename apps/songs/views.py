@@ -120,22 +120,40 @@ def get_song(request, userid):
         try:
             song = Song.objects.get(id=track_id)
             # Convert the song object to a dictionary for JsonResponse
+            genres = song.genres.all()
+            genre_names = [genre.name for genre in genres]
+
+            artists = song.artists.all()
+            artist_names = [artist.name for artist in artists]
+
+            albums = song.albums.all()
+            album_names = [album.name for album in albums]
+
+            instruments = song.instruments.all()
+            instrument_names = [instrument.name for instrument in instruments]
+            
             song_info = {
-                'id': song.id,
-                'song_name': song.name,
-                'release_year': song.release_year,
-                'duration': song.duration.total_seconds(),
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
-                'replay_count': song.replay_count,
-                'version': song.version,
-            }
+                    'song_id': song.id,
+                    'song_name': song.name,
+                    'genres': genre_names,
+                    'artists': artist_names,
+                    'albums': album_names,
+                    'instruments': instrument_names,
+                    'release_year': song.release_year,
+                    'duration': song.duration.total_seconds(),
+                    'tempo': song.tempo,
+                    'mood': song.mood,
+                    'recorded_environment': song.recorded_environment,
+                    'replay_count': song.replay_count,
+                    'version': song.version,
+                    'img_url': song.img_url,
+                }
             return JsonResponse({'message': 'song found', 'song_info': song_info}, status=200)
         except Song.DoesNotExist:
             return JsonResponse({'error': 'Song not found'}, status=404)
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
+
 
 
 @csrf_exempt
