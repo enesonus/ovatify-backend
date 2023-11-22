@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.utils import bulk_get_or_create, get_artist_bio, clean_html_tags
+from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info
 from songs.models import (Instrument, Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo)
@@ -160,7 +160,9 @@ def get_song(request, userid):
 @token_required
 def add_song(request, userid):
     try:
-        if request.method == 'POST':
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
             data = json.loads(request.body, encoding='utf-8')
             spotify_id = data.get('spotify_id')  # Add this line to get Spotify ID from the request
             rating = float(data.get('rating'))
@@ -174,11 +176,15 @@ def add_song(request, userid):
             # Use the provided Spotify ID to get track information directly
             track = sp.track(spotify_id)
 
-            if track:
+            if track is None:
+                return JsonResponse({'error': 'Song not found'}, status=400)
+            else:
                 audio_features = sp.audio_features([track['id']])
-                is_song_created_str = ''
+                genres, artist_img = get_genres_and_artist_info(track, sp)
 
-                if audio_features:
+                if audio_features is None:
+                    return JsonResponse({'error': 'No audio features found for the song'}, status=400)
+                else:
                     audio_features = audio_features[0]
                     recorded_environment = RecordedEnvironment.LIVE if audio_features['liveness'] >= 0.8 else RecordedEnvironment.STUDIO
                     tempo = Tempo.FAST if audio_features['tempo'] >= 120 else (Tempo.MEDIUM if 76 <= audio_features['tempo'] < 120 else Tempo.SLOW)
@@ -193,7 +199,8 @@ def add_song(request, userid):
                         mood = Mood.EXCITED
                     # Create necessary objects in the database
                     new_song, created = Song.objects.get_or_create(
-                        name=track['name'],
+                        id=spotify_id,
+                        name=track['name'].title(),
                         release_year=track['album']['release_date'][:4],
                         tempo=tempo,
                         duration=str(timedelta(seconds=int(track['duration_ms']/1000))),
@@ -202,47 +209,48 @@ def add_song(request, userid):
                         img_url=track['album']['images'][0]['url'],
                         version=track['album']['release_date'],
                     )
-
                     if created:
-                        is_song_created_str = 'and song is created '
-                        for artist in track['artists']:
-                            if 'genres' in artist and artist['genres']:
-                                for genre_name in artist['genres']:
-                                    if genre_name:
-                                        genre, created = Genre.objects.get_or_create(name=genre_name)
-                                        new_song.genres.add(genre)
+                        for genre_name in genres:
+                            if genre_name:
+                                genre, created = Genre.objects.get_or_create(name=genre_name)
+                                new_song.genres.add(genre)
 
                         for artist in track['artists']:
                             artist_name = artist['name']
                             artist_bio = get_artist_bio(artist_name)
-                            artist_img_url = artist['images'][0]['url'] if 'images' in artist else None
+                            artist_img_url = artist_img if artist_img is not None else None
                             artist_instance, created = \
-                                Artist.objects.get_or_create(name=artist_name,
+                                Artist.objects.get_or_create(name=artist_name.title(),
+                                                             id=artist['id'],
                                                              img_url=artist_img_url,
                                                              bio=artist_bio)
                             new_song.artists.add(artist_instance)
 
-                        album_name= track['album']['name']
-                        album_instance, created = Album.objects.get_or_create(name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
+                        album_name= track['album']['name'].title()
+                        album_instance, created = Album.objects.get_or_create(id = track['album']['id'] ,name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
                         new_song.albums.add(album_instance)
 
                     if rating > 0 and rating <= 5:
                         try:
                             user = User.objects.get(id=userid)
-                            user_song_rating, created = \
+
+                            existing_rating = UserSongRating.objects.filter(user=user, song=new_song)
+                            if existing_rating:
+                                existing_rating.delete()
+
+                            user_song_rating, rating_created = \
                                 UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
+                            if created:
+                                return JsonResponse({'message': f'Rating is added & song added successfully'}, status=201)
+                            else:
+                                return JsonResponse({'message': f'Rating is added & song already exists'}, status=200)
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
-                        
-                    print(new_song)
-
-                    return JsonResponse({'message': f'Rating is added {is_song_created_str}successfully'}, status=201)
-                else:
-                    return JsonResponse({'error': 'No audio features found for the song'}, status=400)
-            else:
-                return JsonResponse({'error': 'Song not found'}, status=400)
-        else:
-            return JsonResponse({'error': 'Invalid method'}, status=400)
+                    else:
+                        if created:
+                            return JsonResponse({'message': f'Song created successfully'}, status=203)
+                        else:
+                            return JsonResponse({'message': f'Song already exists'}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)

@@ -3,6 +3,7 @@ from django.db.models import Model
 import requests
 from bs4 import BeautifulSoup
 import os
+from songs.models import Album, Genre, Instrument, Song, Artist
 
 
 def bulk_get_or_create(model: Model, data: List, unique_field: str) -> Tuple[List[Model], List[Model]]:
@@ -63,3 +64,48 @@ def clean_html_tags(text_with_tags):
 
     return cleaned_text
 
+def get_genres_and_artist_info(track_data, sp):
+    artist_ids = [artist['id'] for artist in track_data['artists']]
+    artist_data = sp.artists(artist_ids)
+
+    genres = []
+    artist_images = []
+
+    for artist in artist_data['artists']:
+        # Check if genres exist for the artist
+        if 'genres' in artist and artist['genres']:
+            # Capitalize the first letter of each genre and add to the list
+            genres += [genre.title() for genre in artist['genres']]
+
+        # Check if images exist for the artist
+        if 'images' in artist and artist['images']:
+            # Get the URL of the first image
+            artist_images.append(artist['images'][0]['url'])
+
+    # Remove duplicate genres
+    unique_genres = list(set(genres))
+
+    return unique_genres, artist_images
+
+def flush_database():
+            all_albums = Album.all_objects.all()
+            for album in all_albums:
+                album.hard_delete()
+
+            # Fetch all instances of Genre and perform hard delete
+            all_genres = Genre.all_objects.all()
+            for genre in all_genres:
+                genre.hard_delete()
+
+            # Fetch all instances of Instrument and perform hard delete
+            all_instruments = Instrument.all_objects.all()
+            for instrument in all_instruments:
+                instrument.hard_delete()
+
+            all_songs = Song.all_objects.all()
+            for songs in all_songs:
+                songs.hard_delete()
+            
+            all_artist = Artist.all_objects.all()
+            for artist in all_artist:
+                artist.hard_delete()

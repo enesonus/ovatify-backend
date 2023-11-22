@@ -62,7 +62,7 @@ class Song(CoreModel):
 
 
 class Artist(CoreModel):
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=300,primary_key=True)
     name = models.CharField(max_length=200)
     bio = models.TextField()
     img_url = models.URLField(max_length=300, blank=True, null=True)
@@ -72,7 +72,7 @@ class Artist(CoreModel):
 
 
 class Album(CoreModel):
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=300, primary_key=True)
     name = models.CharField(max_length=200)
     release_year = models.PositiveIntegerField(blank=True)
     img_url = models.URLField(max_length=300, blank=True, null=True)
