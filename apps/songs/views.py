@@ -31,7 +31,7 @@ def get_all_songs(request, userid):
 
 @csrf_exempt
 @token_required
-def get_songs(request, userid):
+def search_db(request, userid):
     if request.method == 'GET':
         data = request.GET
         search_string = data.get('search_string', '')
@@ -111,48 +111,81 @@ def get_songs(request, userid):
 
 @csrf_exempt
 @token_required
-def get_song(request, userid):
-    if request.method == 'GET':
-        data = request.GET
-        track_id = data.get('song_id')
-        if track_id is None:
-            return JsonResponse({'error': 'Missing parameter'}, status=400)
-        try:
-            song = Song.objects.get(id=track_id)
-            # Convert the song object to a dictionary for JsonResponse
-            genres = song.genres.all()
-            genre_names = [genre.name for genre in genres]
-
-            artists = song.artists.all()
-            artist_names = [artist.name for artist in artists]
-
-            albums = song.albums.all()
-            album_names = [album.name for album in albums]
-
-            instruments = song.instruments.all()
-            instrument_names = [instrument.name for instrument in instruments]
-            
-            song_info = {
-                    'song_id': song.id,
-                    'song_name': song.name,
-                    'genres': genre_names,
-                    'artists': artist_names,
-                    'albums': album_names,
-                    'instruments': instrument_names,
-                    'release_year': song.release_year,
-                    'duration': song.duration.total_seconds(),
-                    'tempo': song.tempo,
-                    'mood': song.mood,
-                    'recorded_environment': song.recorded_environment,
-                    'replay_count': song.replay_count,
-                    'version': song.version,
-                    'img_url': song.img_url,
-                }
-            return JsonResponse({'message': 'song found', 'song_info': song_info}, status=200)
-        except Song.DoesNotExist:
-            return JsonResponse({'error': 'Song not found'}, status=404)
-    else:
+def get_song_by_id(request, userid):
+    if request.method != 'GET':
         return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    data = request.GET
+    track_id = data.get('song_id')
+    if track_id is None:
+        return JsonResponse({'error': 'Missing parameter'}, status=400)
+
+    try:
+        song = Song.objects.get(id=track_id)
+    except Song.DoesNotExist:
+        return JsonResponse({'error': 'Song not found'}, status=404)
+
+    # Convert the song object to a dictionary for JsonResponse
+    genres = song.genres.all()
+    genre_names = [genre.name for genre in genres]
+
+    artists = song.artists.all()
+    artist_names = [artist.name for artist in artists]
+
+    albums = song.albums.all()
+    album_names = [album.name for album in albums]
+
+    instruments = song.instruments.all()
+    instrument_names = [instrument.name for instrument in instruments]
+    tempo_long_form = dict(Tempo.choices)[song.tempo]
+    mood_long_form = dict(Mood.choices)[song.mood]
+    recorded_environment_long_form = dict(RecordedEnvironment.choices)[song.recorded_environment]
+
+    try:
+        user = User.objects.get(id=userid)  # Assuming you have a User model
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    try:
+        rating_aggregation = UserSongRating.objects.filter(song=song).aggregate(
+            total_ratings=Count('rating'),
+            sum_ratings=Sum('rating')
+        )
+        total_ratings = rating_aggregation['total_ratings']
+        sum_ratings = rating_aggregation['sum_ratings']
+
+        if total_ratings > 0:
+            average_rating = sum_ratings / total_ratings
+        else:
+            average_rating = 0
+
+        try:
+            user_rating = UserSongRating.objects.get(user=user, song=song).rating
+        except UserSongRating.DoesNotExist:
+            user_rating = 0
+    except UserSongRating.DoesNotExist:
+        average_rating = 0
+        user_rating = 0
+
+    song_info = {
+        'id': song.id,
+        'name': song.name,
+        'genres': genre_names,
+        'artists': artist_names,
+        'albums': album_names,
+        'instruments': instrument_names,
+        'release_year': song.release_year,
+        'duration': song.duration.total_seconds(),
+        'tempo': tempo_long_form,
+        'mood': mood_long_form,
+        'recorded_environment': recorded_environment_long_form,
+        'replay_count': song.replay_count,
+        'version': song.version,
+        'img_url': song.img_url,
+        'average_rating': average_rating,
+        'user_rating': user_rating,
+    }
+    return JsonResponse({'message': 'song found', 'song_info': song_info}, status=200)
 
 
 
@@ -252,7 +285,7 @@ def add_song(request, userid):
     
 @csrf_exempt
 @token_required
-def search_songs(request, userid):
+def search_spotify(request, userid):
     try:
         if request.method == 'GET':
             data = request.GET
