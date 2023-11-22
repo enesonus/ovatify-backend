@@ -4,10 +4,10 @@ from songs import views
 
 urlpatterns = [
  path('get-all/', view=views.get_all_songs, name='get-all-songs'),
- path('api/get/', views.get_songs, name='get-songs'),
- path('api/fetch/', views.get_song, name='get-song'),
- path('api/add/', views.add_song, name='add-song'),
- path('api/search/', views.search_songs, name='search-songs'),
+ path('search-db/', views.search_db, name='search-db'),
+ path('get-song-by-id/', views.get_song_by_id, name='get-song-by-id'),
+ path('add-song/', views.add_song, name='add-song'),
+ path('search-spotify/', views.search_spotify, name='search-spotify'),
  path('get-all-genres/', views.get_all_genres, name='get-all-genres'),
  path('create-genre/', views.create_genre, name='create-genre'),
  path('upload-file/', views.import_song_JSON, name='import-song-json'),
