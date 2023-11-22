@@ -4,12 +4,13 @@ from collections import Counter
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db.models import Prefetch
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 
-from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong
+from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
 from users.models import User, UserPreferences, UserSongRating, Friend
 
 
@@ -389,9 +390,9 @@ def user_songs_with_genre(request, userid):
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
+                'tempo':  Tempo(song.tempo).label,
+                'mood': Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
                 'replay_count': song.replay_count,
                 'version': song.version,
                 'img_url': song.img_url
@@ -437,9 +438,9 @@ def user_songs_with_artist(request, userid):
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
+                'tempo':  Tempo(song.tempo).label,
+                'mood':  Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
                 'replay_count': song.replay_count,
                 'version': song.version,
                 'img_url': song.img_url
@@ -470,13 +471,14 @@ def user_songs_with_tempo(request, userid):
         tempo_name: str = data.get('tempo_name')
         if tempo_name is None:  # if Tempo Name is not provided
             return HttpResponse(status=400)
-        tempo_name = tempo_name.upper()
+        tempo_name = tempo_name.capitalize()
         user = User.objects.get(id=userid)
         user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
         matching_songs = []
         for song in songs:
-            if song.tempo == tempo_name:
+            tempo_label = Tempo(song.tempo).label
+            if tempo_label == tempo_name:
                 matching_songs.append(song)
         serialized_songs = [
             {
@@ -484,9 +486,9 @@ def user_songs_with_tempo(request, userid):
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
+                'tempo': Tempo(song.tempo).label,
+                'mood': Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
                 'replay_count': song.replay_count,
                 'version': song.version,
                 'img_url': song.img_url
@@ -514,13 +516,14 @@ def user_songs_with_mood(request, userid):
         mood_name: str = data.get('mood_name')
         if mood_name is None:  # if Mood Name is not provided
             return HttpResponse(status=400)
-        mood_name = mood_name.upper()
+        mood_name = mood_name.capitalize()
         user = User.objects.get(id=userid)
         user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
         matching_songs = []
         for song in songs:
-            if song.mood == mood_name:
+            mood_label = Mood(song.mood).label
+            if mood_label == mood_name:
                 matching_songs.append(song)
         serialized_songs = [
             {
@@ -528,9 +531,9 @@ def user_songs_with_mood(request, userid):
                 'name': song.name,
                 'release_year': song.release_year,
                 'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
+                'tempo': Tempo(song.tempo).label,
+                'mood':  Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
                 'replay_count': song.replay_count,
                 'version': song.version,
                 'img_url': song.img_url
@@ -580,12 +583,7 @@ def get_recently_added_songs(request, userid):
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
-                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
-                'replay_count': song.replay_count,
-                'version': song.version,
+                'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
                 'img_url': song.img_url
             }
             for song in songs
@@ -617,12 +615,7 @@ def get_favorite_songs(request, userid):
                 'id': song.id,
                 'name': song.name,
                 'release_year': song.release_year,
-                'duration': song.duration.total_seconds(),  # Convert DurationField to seconds
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
-                'replay_count': song.replay_count,
-                'version': song.version,
+                'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
                 'img_url': song.img_url
             }
             for song in songs
@@ -706,7 +699,8 @@ def get_favorite_moods(request, userid):
         songs = [song_rating.song for song_rating in user_songs_ratings]
         mood_counts = Counter()
         for song in songs:
-            mood_counts[song.mood] += 1
+            mood_label = Mood(song.mood).label
+            mood_counts[mood_label] += 1
 
         return JsonResponse(dict(mood_counts), status=200)
     except User.DoesNotExist:
@@ -730,7 +724,8 @@ def get_favorite_tempos(request, userid):
         songs = [song_rating.song for song_rating in user_songs_ratings]
         tempo_counts = Counter()
         for song in songs:
-            tempo_counts[song.tempo] += 1
+            tempo_label = Tempo(song.tempo).label
+            tempo_counts[tempo_label] += 1
 
         return JsonResponse(dict(tempo_counts), status=200)
     except User.DoesNotExist:
@@ -756,4 +751,34 @@ def get_all_song_genres(request, userid):
         "GenreSongRelation": list(genresong)
     }
     return JsonResponse(context, status=200)
+
+@csrf_exempt
+@token_required
+def get_all_recent_songs(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs: int = data.get('number_of_songs', 10)
+        number_of_songs = int(number_of_songs)
+        user_songs_ratings = UserSongRating.objects.prefetch_related(
+            Prefetch('song', queryset=Song.objects.all())).order_by('-created_at')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings] # Get the song objects from the ratings
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
+                'img_url': song.img_url
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
