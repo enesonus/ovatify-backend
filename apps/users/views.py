@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 
 from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
-from users.models import User, UserPreferences, UserSongRating, Friend
+from users.models import User, UserPreferences, UserSongRating, Friend, FriendRequest, RequestStatus
 
 
 
@@ -782,3 +782,248 @@ def get_all_recent_songs(request, userid):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+@token_required
+def get_all_incoming_requests(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        user = User.objects.get(id=userid)
+        incoming_requests = FriendRequest.objects.filter(receiver=user,
+                                                         status=RequestStatus.PENDING).prefetch_related('sender')
+        senders = [single_request.sender for single_request in incoming_requests]
+        sender_users = [
+            {
+                'id': sender.id,
+                'name': sender.username,
+                'img_url': sender.img_url
+            }
+            for sender in senders
+        ]
+        return JsonResponse({'incoming requests': sender_users}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_incoming_requests_count(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        user = User.objects.get(id=userid)
+        incoming_requests = FriendRequest.objects.filter(receiver=user,
+                                                         status=RequestStatus.PENDING).prefetch_related('sender')
+        request_count = incoming_requests.count()
+        return JsonResponse({'count': request_count}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_all_outgoing_requests(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        user = User.objects.get(id=userid)
+        outgoing_requests = FriendRequest.objects.filter(sender=user,
+                                                         status=RequestStatus.PENDING).prefetch_related('receiver')
+        receivers = [single_request.receiver for single_request in outgoing_requests]
+        receiver_users = [
+            {
+                'id': receiver.id,
+                'name': receiver.username,
+                'img_url': receiver.img_url
+            }
+            for receiver in receivers
+        ]
+        return JsonResponse({'outgoing requests': receiver_users}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+@token_required
+def send_friend_request(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        data = json.loads(request.body.decode('utf-8'))
+        receiverUser = data.get('username')
+        if receiverUser is None or user is None:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        receiver = User.objects.get(username=receiverUser)
+        if receiver is None:
+            return JsonResponse({'error': 'Receiver not found'}, status=404)
+        if user == receiver:
+            return JsonResponse({'error': 'You cannot send a friend request to yourself'}, status=400)
+        if user.friends.filter(id=receiver.id).exists():
+            return JsonResponse({'error': 'User is already a friend'}, status=400)
+        existing_friend_request = FriendRequest.objects.filter(sender=user, receiver=receiver).first()
+        if existing_friend_request:
+            if existing_friend_request.status == RequestStatus.PENDING:
+                return JsonResponse({'error': 'There is already a pending request'}, status=400)
+            elif existing_friend_request.status == RequestStatus.ACCEPTED:
+                return JsonResponse({'message': f'You are already friends with {receiverUser}'}, status=400)
+            elif existing_friend_request.status == RequestStatus.REJECTED:
+                existing_friend_request.status = RequestStatus.PENDING
+                existing_friend_request.save()
+                return JsonResponse({'message': 'Friend request sent successfully.'}, status=200)
+        FriendRequest.objects.create(sender=user, receiver=receiver)
+        return JsonResponse({'message': 'Friend request sent successfully.'}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'user not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def accept_friend_request(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        data = json.loads(request.body.decode('utf-8'))
+        requesterName = data.get('username')
+        if not requesterName or not user:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        requesterUser = User.objects.get(username=requesterName)
+        if requesterUser is None:
+            return JsonResponse({'error': 'Requester not found'}, status=404)
+        if user.friends.filter(id=requesterUser.id).exists():
+            return JsonResponse({'error': 'User is already a friend'}, status=400)
+        pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
+        if not pendingRequest:
+            return JsonResponse({'error': 'This request does not exist anymore.'}, status=400)
+        if pendingRequest.status == RequestStatus.PENDING:
+            pendingRequest.status = RequestStatus.ACCEPTED
+            pendingRequest.save()
+            user.friends.add(requesterUser)
+            user.save()
+            return JsonResponse({'message': 'Friend request accepted successfully.'}, status=200)
+        elif pendingRequest.status == RequestStatus.ACCEPTED:
+            return JsonResponse({'message': f'You are already a friend with {requesterName}'}, status=400)
+        elif pendingRequest.status == RequestStatus.REJECTED:
+            return JsonResponse({'message': 'This request has been rejected before,'
+                                            ' you cannot accept now.'}, status=400)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'user not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def reject_friend_request(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        data = json.loads(request.body.decode('utf-8'))
+        requesterName = data.get('username')
+        if not requesterName or not user:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        requesterUser = User.objects.get(username=requesterName)
+        if requesterUser is None:
+            return JsonResponse({'error': f'There is no request found from this user.'}, status=404)
+        if user.friends.filter(id=requesterUser.id).exists():
+            return JsonResponse({'error': 'User is already a friend'}, status=400)
+        pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
+        if not pendingRequest:
+            return JsonResponse({'error': 'There is no request found from the user: '}, status=400)
+        if pendingRequest.status == RequestStatus.PENDING:
+            pendingRequest.status = RequestStatus.REJECTED
+            pendingRequest.save()
+            return JsonResponse({'message': 'Friend request declined.'}, status=200)
+        elif pendingRequest.status == RequestStatus.ACCEPTED:
+            return JsonResponse({'message': 'This request has already been accepted'}, status=400)
+        elif pendingRequest.status == RequestStatus.REJECTED:
+            return JsonResponse({'message': 'You have already rejected this request.'}, status=400)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'user not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def cancel_friend_request(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        data = json.loads(request.body.decode('utf-8'))
+        receiverName = data.get('username')
+        if not receiverName or not user:
+            return JsonResponse({'error': 'Missing parameter'}, status=400)
+        receiverUser = User.objects.get(username=receiverName)
+        if receiverUser is None:
+            return JsonResponse({'error': f'There is no user found with username {receiverName}'}, status=404)
+        pendingRequest = FriendRequest.objects.filter(sender=user, receiver=receiverUser).first()
+        if not pendingRequest:
+            return JsonResponse({'error': f'There is no request found for the user: {receiverName}'}, status=404)
+        if pendingRequest.status == RequestStatus.PENDING:
+            pendingRequest.hard_delete()
+            return JsonResponse({'message': f'You canceled your friend request to {receiverName}.'}, status=200)
+        return JsonResponse({'message': 'This request has been deleted.'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'user not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_all_friends(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        user = User.objects.get(id=userid)
+        friends = user.friends.all()
+        all_friends = [
+            {
+                'id': friend.id,
+                'name': friend.username,
+                'img_url': friend.img_url
+            }
+            for friend in friends
+        ]
+        return JsonResponse({'friends': all_friends}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+def delete_request(request):
+    if request.method != 'DELETE':
+        return HttpResponse(status=405)
+    try:
+        req = FriendRequest.objects.get(id=7)
+        req.hard_delete()
+        return JsonResponse({'response': 'success'}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_all_global_requests(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        reqs = FriendRequest.objects.all().values()
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+    context = {
+        "reqs": list(reqs)
+    }
+    return JsonResponse(context, status=200)

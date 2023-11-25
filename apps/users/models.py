@@ -66,3 +66,22 @@ class FriendGroup(CoreModel):
 
     def __str__(self):
         return self.name
+
+
+#Enum Class for Friend Request Status
+class RequestStatus(models.TextChoices):
+    ACCEPTED = 'A', 'Accepted'
+    REJECTED = 'R', 'Rejected'
+    PENDING = 'P', 'Pending'
+
+
+class FriendRequest(CoreModel):
+    sender = models.ForeignKey(User, related_name='sender', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
+    status = models.CharField(max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING)
+    # Do not forget to add created_by(this field is in CoreModel) to this model while creating it
+
+    class Meta:
+        unique_together = (("sender", "receiver"),)
+
+
