@@ -762,7 +762,7 @@ def get_all_recent_songs(request, userid):
         number_of_songs: int = data.get('number_of_songs', 10)
         number_of_songs = int(number_of_songs)
         user_songs_ratings = UserSongRating.objects.prefetch_related(
-            Prefetch('song', queryset=Song.objects.all())).order_by('-created_at')[:number_of_songs]
+            Prefetch('song', queryset=Song.objects.all())).order_by('-created_at').distinct('song')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings] # Get the song objects from the ratings
         serialized_songs = [
             {
@@ -864,6 +864,10 @@ def send_friend_request(request, userid):
             return JsonResponse({'error': 'You cannot send a friend request to yourself'}, status=400)
         if user.friends.filter(id=receiver.id).exists():
             return JsonResponse({'error': 'User is already a friend'}, status=400)
+        incoming_request = FriendRequest.objects.filter(sender=receiver, receiver=user).first()
+        if incoming_request and incoming_request.status == RequestStatus.PENDING:
+            return JsonResponse({'error': f'There is already a pending request coming from user {receiverUser}'},
+                                status=409)
         existing_friend_request = FriendRequest.objects.filter(sender=user, receiver=receiver).first()
         if existing_friend_request:
             if existing_friend_request.status == RequestStatus.PENDING:
@@ -900,7 +904,7 @@ def accept_friend_request(request, userid):
             return JsonResponse({'error': 'User is already a friend'}, status=400)
         pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
         if not pendingRequest:
-            return JsonResponse({'error': 'This request does not exist anymore.'}, status=400)
+            return JsonResponse({'error': 'This request does not exist anymore.'}, status=404)
         if pendingRequest.status == RequestStatus.PENDING:
             pendingRequest.status = RequestStatus.ACCEPTED
             pendingRequest.save()
@@ -931,12 +935,12 @@ def reject_friend_request(request, userid):
             return JsonResponse({'error': 'Missing parameter'}, status=400)
         requesterUser = User.objects.get(username=requesterName)
         if requesterUser is None:
-            return JsonResponse({'error': f'There is no request found from this user.'}, status=404)
+            return JsonResponse({'error': f'There is no request found from the user: {requesterName}.'}, status=404)
         if user.friends.filter(id=requesterUser.id).exists():
             return JsonResponse({'error': 'User is already a friend'}, status=400)
         pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
         if not pendingRequest:
-            return JsonResponse({'error': 'There is no request found from the user: '}, status=400)
+            return JsonResponse({'error': f'There is no request found from the user: {requesterName} '}, status=400)
         if pendingRequest.status == RequestStatus.PENDING:
             pendingRequest.status = RequestStatus.REJECTED
             pendingRequest.save()
