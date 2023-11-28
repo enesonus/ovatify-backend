@@ -799,7 +799,7 @@ def get_all_incoming_requests(request, userid):
             }
             for sender in senders
         ]
-        return JsonResponse({'incoming requests': sender_users}, status=200)
+        return JsonResponse({'requests': sender_users}, status=200)
     except Exception as e:
         return JsonResponse({"error": "Database error"}, status=500)
 
@@ -839,7 +839,7 @@ def get_all_outgoing_requests(request, userid):
             }
             for receiver in receivers
         ]
-        return JsonResponse({'outgoing requests': receiver_users}, status=200)
+        return JsonResponse({'requests': receiver_users}, status=200)
     except Exception as e:
         return JsonResponse({"error": "Database error"}, status=500)
 
