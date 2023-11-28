@@ -902,7 +902,7 @@ def accept_friend_request(request, userid):
             return JsonResponse({'error': 'User is already a friend'}, status=400)
         pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
         if not pendingRequest:
-            return JsonResponse({'error': 'This request does not exist anymore.'}, status=404)
+            return JsonResponse({'error': f'There is no request found from the user: {requesterName} '}, status=404)
         if pendingRequest.status == RequestStatus.PENDING:
             pendingRequest.status = RequestStatus.ACCEPTED
             pendingRequest.save()
@@ -933,12 +933,12 @@ def reject_friend_request(request, userid):
             return JsonResponse({'error': 'Missing parameter'}, status=400)
         requesterUser = User.objects.get(username=requesterName)
         if requesterUser is None:
-            return JsonResponse({'error': f'There is no request found from the user: {requesterName}.'}, status=404)
+            return JsonResponse({'error': 'Requester not found'}, status=404)
         if user.friends.filter(id=requesterUser.id).exists():
             return JsonResponse({'error': 'User is already a friend'}, status=400)
         pendingRequest = FriendRequest.objects.filter(sender=requesterUser, receiver=user).first()
         if not pendingRequest:
-            return JsonResponse({'error': f'There is no request found from the user: {requesterName} '}, status=400)
+            return JsonResponse({'error': f'There is no request found from the user: {requesterName} '}, status=404)
         if pendingRequest.status == RequestStatus.PENDING:
             pendingRequest.status = RequestStatus.REJECTED
             pendingRequest.save()
@@ -973,7 +973,7 @@ def cancel_friend_request(request, userid):
         if pendingRequest.status == RequestStatus.PENDING:
             pendingRequest.hard_delete()
             return JsonResponse({'message': f'You canceled your friend request to {receiverName}.'}, status=200)
-        return JsonResponse({'message': 'This request has been deleted.'}, status=404)
+        return JsonResponse({'error': 'This request has been deleted.'}, status=404)
     except User.DoesNotExist:
         return JsonResponse({'error': 'user not found'}, status=404)
     except Exception as e:
