@@ -761,9 +761,7 @@ def get_all_recent_songs(request, userid):
         data = request.GET
         number_of_songs: int = data.get('number_of_songs', 10)
         number_of_songs = int(number_of_songs)
-        user_songs_ratings = UserSongRating.objects.prefetch_related(
-            Prefetch('song', queryset=Song.objects.all())).order_by('-created_at').distinct('song')[:number_of_songs]
-        songs = [song_rating.song for song_rating in user_songs_ratings] # Get the song objects from the ratings
+        latest_songs = Song.objects.order_by('-created_at')[:number_of_songs]
         serialized_songs = [
             {
                 'id': song.id,
@@ -772,7 +770,7 @@ def get_all_recent_songs(request, userid):
                 'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
                 'img_url': song.img_url
             }
-            for song in songs
+            for song in latest_songs
         ]
         return JsonResponse({'songs': serialized_songs}, status=200)
     except User.DoesNotExist:
