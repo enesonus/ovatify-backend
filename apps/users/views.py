@@ -1029,3 +1029,57 @@ def get_all_global_requests(request, userid):
         "reqs": list(reqs)
     }
     return JsonResponse(context, status=200)
+
+@csrf_exempt
+@token_required
+def edit_user_preferences(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    if request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+        if not data:
+            return JsonResponse({'error': 'No fields provided for update'}, status=400)
+
+        new_username = data.get('username')
+        if new_username and new_username != user.username and User.objects.filter(username=new_username).exists():
+            return JsonResponse({'error': 'Username already in use'}, status=400)
+
+        for field, value in data.items():
+            if field == 'username':
+                user.username = value
+            elif field == 'email':
+                user.email = value
+            elif field == 'img_url':
+                user.img_url = value
+            elif field == 'data_processing_consent':
+                user_preferences = user.user_preferences
+
+                if not user_preferences:
+                    return JsonResponse({'error': 'User preferences not found'}, status=400)
+
+                user_preferences.data_processing_consent = value
+                user_preferences.save()
+
+            elif field == 'data_sharing_consent' in data:
+
+                user_preferences = user.user_preferences
+
+                if not user_preferences:
+                    return JsonResponse({'error': 'User preferences not found'}, status=400)
+
+                user_preferences.data_sharing_consent = value
+                user_preferences.save()
+
+
+        user.save()
+
+        return JsonResponse({'message': 'User preferences updated successfully'}, status = 200)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
