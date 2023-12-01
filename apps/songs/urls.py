@@ -13,4 +13,6 @@ urlpatterns = [
  path('upload-file/', views.import_song_JSON, name='import-song-json'),
  path('get-average-rating/', views.average_song_rating, name='get-average-rating'),
  path('get-genres/', views.get_demanded_genres, name='get-genres'),
+ path('get-songs-by-genre/', views.get_songs_by_genre, name='get-songs-by-genre'),
+ path('get-song-genres/', views.get_genres_of_a_song, name='get-song-genres'),
 ]
