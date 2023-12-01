@@ -23,7 +23,7 @@ from django.core.serializers import serialize
 @csrf_exempt
 @token_required
 def get_all_songs(request, userid):
-    songs = Song.objects.all().values()
+    songs = Song.objects.all().values().order_by('-created_at')
     context = {
         "users": list(songs)
     }
@@ -513,5 +513,73 @@ def get_demanded_genres(request, userid):
         return JsonResponse({'genres': serialized_genres}, status=200)
     except ValueError:
         return JsonResponse({'error': 'Invalid number of genres'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@csrf_exempt
+@token_required
+def get_songs_by_genre(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs = data.get('number_of_songs')
+        if not number_of_songs:
+            return JsonResponse({'error': 'Missing number of songs'}, status=400)
+        number_of_songs = int(number_of_songs)
+        if number_of_songs < -1 or number_of_songs == 0:
+            return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+        genre_name: str = data.get('genre_name')
+        if not genre_name:  # if Genre Name is not provided
+            return JsonResponse({'error': 'Missing genre name'}, status=400)
+        genre_name = genre_name.title()
+        if number_of_songs == -1:
+            songs = Song.objects.filter(genres__name=genre_name).order_by('-created_at').all()
+        else:
+            songs = Song.objects.filter(genres__name=genre_name).order_by('-created_at')[:number_of_songs]
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
+                'img_url': song.img_url
+            }
+            for song in songs
+        ]
+        return JsonResponse({'songs': serialized_songs}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_genres_of_a_song(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        song_id = data.get('song_id')
+        if song_id is None:
+            return JsonResponse({'error': 'Missing song id'}, status=400)
+        try:
+            song = Song.objects.get(id=song_id)
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'Song not found'}, status=404)
+        genres = song.genres.all().values()
+        serialized_genres = [
+            {
+                'id': genre['id'],
+                'name': genre['name'],
+            }
+            for genre in genres
+        ]
+        return JsonResponse({'genres': serialized_genres}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
