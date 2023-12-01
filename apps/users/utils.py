@@ -106,3 +106,26 @@ def getFavoriteTempos(userid: str, number_of_songs: int):
     tempo_counts = tempo_counts.most_common()
     return tempo_counts  # returns a list of tempo names and their counts, we can call
     # .most_common(n) on tempo_counts to get the most common n tempos
+
+def recommendation_creator(spotify_recommendations):
+    tracks_info = []
+
+    for track in spotify_recommendations['tracks']:
+        track_name = track['name'].title()
+        release_year = track['album']['release_date'][:4]  # Extracting the first 4 characters for the release year
+        spotify_id = track['id']
+        album_name = album_name = track['album']['name'].title() if 'album' in track and 'name' in track['album'] else track['name'].title() + ' - Single'
+        album_image_url = track['album']['images'][0]['url']
+
+        artists_list = ', '.join([artist['name'].title() for artist in track['artists']])
+
+        track_info = {
+            'name': track_name,
+            'artist_name': artists_list,
+            'release_year': release_year,
+            'id': spotify_id,
+            'album_name': album_name,
+            'image_url': album_image_url,
+        }
+        tracks_info.append(track_info)
+
