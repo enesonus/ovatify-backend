@@ -12,7 +12,7 @@ from OVTF_Backend.firebase_auth import token_required
 
 from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
 from users.models import User, UserPreferences, UserSongRating, Friend, FriendRequest, RequestStatus
-
+from users.utils import getFavoriteGenres, getFavoriteSongs, getFavoriteArtists, getFavoriteMoods, getFavoriteTempos
 
 
 # Create endpoints
@@ -607,7 +607,7 @@ def get_favorite_songs(request, userid):
         number_of_songs: int = data.get('number_of_songs', 10)
         number_of_songs = int(number_of_songs)
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating', '-updated_at')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
         # ratings = [song_rating.rating for song_rating in user_songs_ratings]  # In case we want to retrieve ratings
         serialized_songs = [
