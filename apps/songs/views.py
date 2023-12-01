@@ -245,22 +245,22 @@ def add_song(request, userid):
                     if created:
                         for genre_name in genres:
                             if genre_name:
-                                genre, created = Genre.objects.get_or_create(name=genre_name)
+                                genre, genre_created = Genre.objects.get_or_create(name=genre_name)
                                 new_song.genres.add(genre)
 
                         for artist in track['artists']:
                             artist_name = artist['name']
                             artist_bio = get_artist_bio(artist_name)
                             artist_img_url = artist_img if artist_img is not None else None
-                            artist_instance, created = \
+                            artist_instance, artist_created = \
                                 Artist.objects.get_or_create(name=artist_name.title(),
                                                              id=artist['id'],
                                                              img_url=artist_img_url,
                                                              bio=artist_bio)
                             new_song.artists.add(artist_instance)
 
-                        album_name= track['album']['name'].title()
-                        album_instance, created = Album.objects.get_or_create(id = track['album']['id'] ,name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
+                        album_name = track['album']['name'].title() if 'album' in track and 'name' in track['album'] else track['name'].title() + ' - Single'
+                        album_instance, album_created = Album.objects.get_or_create(id = track['album']['id'] ,name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
                         new_song.albums.add(album_instance)
 
                     if rating > 0 and rating <= 5:
@@ -268,22 +268,23 @@ def add_song(request, userid):
                             user = User.objects.get(id=userid)
 
                             existing_rating = UserSongRating.objects.filter(user=user, song=new_song)
-                            if existing_rating:
-                                existing_rating.delete()
 
-                            user_song_rating, rating_created = \
+                            if created and existing_rating.count() == 0:
+                                user_song_rating, rating_created = \
                                 UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
-                            if created:
-                                return JsonResponse({'message': f'Rating is added & song added successfully'}, status=201)
+                                return JsonResponse({'message': f'Rating is added & song added successfully'}, status=200)
+                            elif not created and existing_rating.count() == 0:
+                                UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
+                                return JsonResponse({'message': f'Rating is added successfully'}, status=200)
                             else:
-                                return JsonResponse({'message': f'Rating is added & song already exists'}, status=200)
+                                return JsonResponse({'message': f'You have already added this song, please update your rating via your library'}, status=400)
                         except User.DoesNotExist:
                             return JsonResponse({'error': 'User not found'}, status=404)
                     else:
                         if created:
-                            return JsonResponse({'message': f'Song created successfully'}, status=203)
+                            return JsonResponse({'message': f'Song added successfully'}, status=201)
                         else:
-                            return JsonResponse({'message': f'Song already exists'}, status=200)
+                            return JsonResponse({'message': f'You have already added this song'}, status=400)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)
