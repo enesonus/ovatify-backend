@@ -483,3 +483,35 @@ def average_song_rating(request):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_demanded_genres(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_genres = data.get('number_of_genres')
+        if not number_of_genres:
+            return JsonResponse({'error': 'Missing number of genres'}, status=400)
+        number_of_genres = int(number_of_genres)
+        if number_of_genres < -1 or number_of_genres == 0:
+            return JsonResponse({'error': 'Invalid number of genres'}, status=400)
+        if number_of_genres == -1:
+            genres = Genre.objects.all().values().order_by('-updated_at')
+        else:
+            genres = Genre.objects.all().values().order_by('-updated_at')[:number_of_genres]
+        serialized_genres = [
+            {
+                'id': genre['id'],
+                'name': genre['name'],
+            }
+            for genre in genres
+
+        ]
+        return JsonResponse({'genres': serialized_genres}, status=200)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of genres'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
