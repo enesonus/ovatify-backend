@@ -38,5 +38,6 @@ urlpatterns = [
     path('get-all-friends/', view=views.get_all_friends, name='get-all-friends'),
     path('get-all-global-requests/', view=views.get_all_global_requests, name='get-all-requests'),
     path('delete-request/', view=views.delete_request, name='delete-request'),
-    path('edit-user-preferences/', view = views.edit_user_preferences, name= 'edit_user_preferences')
+    path('edit-user-preferences/', view = views.edit_user_preferences, name= 'edit_user_preferences'),
+    path('recommend-songs/', view = views.recommend_songs, name='recommend-songs'),
 ]
