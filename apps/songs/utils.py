@@ -69,9 +69,11 @@ def get_genres_and_artist_info(track_data, sp):
     artist_data = sp.artists(artist_ids)
 
     genres = []
-    artist_images = []
+    artist_images = {}
 
     for artist in artist_data['artists']:
+
+        artist_name = artist['name']
         # Check if genres exist for the artist
         if 'genres' in artist and artist['genres']:
             # Capitalize the first letter of each genre and add to the list
@@ -79,8 +81,9 @@ def get_genres_and_artist_info(track_data, sp):
 
         # Check if images exist for the artist
         if 'images' in artist and artist['images']:
+            image_url = artist['images'][0]['url']
             # Get the URL of the first image
-            artist_images.append(artist['images'][0]['url'])
+            artist_images[artist_name.title()] = image_url
 
     # Remove duplicate genres
     unique_genres = list(set(genres))
