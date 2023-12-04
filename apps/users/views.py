@@ -1276,3 +1276,70 @@ def get_profile_stats(request, userid):
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@token_required
+def recommend_since_you_like(request, userid):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = json.loads(request.body, encoding='utf-8')
+            request_type = data.get('request_type')  # Add this line to get Spotify ID from the request
+            parameters = data.get('parameters')
+
+            client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+            sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+
+            if request_type is None:
+                return JsonResponse({'error': 'Missing parameter'}, status=404)
+            elif request_type == 'genre':
+                recommendations = {}
+                for genre in parameters:
+                    seed = genre.lower()
+                    available_genre_seeds = sp.recommendation_genre_seeds()
+
+                    if genre not in available_genre_seeds['genres']:
+                        return JsonResponse({'error': 'No recommendations based on genre can be made currently, please try again later'}, status=404)
+                    else:
+                        params = {
+                            'limit': 5,
+                            'seed_genres': [genre]
+                        }
+                        spotify_recommendations = sp.recommendations(**params)
+                        songs = recommendation_creator(spotify_recommendations)
+                        recommendations[genre] = songs
+                return JsonResponse({'message': 'Recommendation based on genre is successful', 'recommendations': recommendations}, status=200)
+
+            elif request_type == 'artist':
+                recommendations = {}
+                for artist in parameters:
+                    
+                    result = sp.search(artist, type='artist')
+
+                    artist_res = result['artists']['items']
+
+                    if artist is None:
+                        return JsonResponse({'error': 'No recommendations based on artist can be made currently, please try again later'}, status=404)
+                    
+                    else:
+
+                        seed = artist_res[0]['id']
+
+                        params = {
+                            'limit': 5,
+                            'seed_artists': [seed]
+                        }
+
+                        spotify_recommendations = sp.recommendations(**params)
+                        songs = recommendation_creator(spotify_recommendations)
+                        recommendations[artist] = songs
+                return JsonResponse({'message': 'Recommendation based on artist is successful', 'recommendations': recommendations}, status=200)
+            else:
+                return JsonResponse({'error': 'Invalid request type'}, status=400)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
