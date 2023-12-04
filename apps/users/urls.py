@@ -40,4 +40,5 @@ urlpatterns = [
     path('delete-request/', view=views.delete_request, name='delete-request'),
     path('edit-user-preferences/', view = views.edit_user_preferences, name= 'edit_user_preferences'),
     path('recommend-songs/', view = views.recommend_songs, name='recommend-songs'),
+    path('get-user-profile/', view = views.get_user_profile, name= 'get-user-profile')
 ]

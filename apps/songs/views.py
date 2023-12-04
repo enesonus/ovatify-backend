@@ -182,8 +182,8 @@ def get_song_by_id(request, userid):
         'replay_count': song.replay_count,
         'version': song.version,
         'img_url': song.img_url,
-        'average_rating': average_rating,
-        'user_rating': user_rating,
+        'average_rating': round(average_rating,2),
+        'user_rating': round(user_rating,2),
     }
     return JsonResponse({'message': 'song found', 'song_info': song_info}, status=200)
 

@@ -1190,3 +1190,33 @@ def recommend_songs(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+@csrf_exempt
+@token_required
+def get_user_profile(request, userid):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid HTTP method. Only GET is allowed.'}, status=405)
+        
+        user = User.objects.get(id=userid)
+        
+        try:
+            user_preferences = user.user_preferences
+        except UserPreferences.DoesNotExist:
+            # Handle the case when user_preferences is not present
+            user_preferences = None
+
+        response_data = {
+            'id': user.id,
+            'name': user.username,
+            'img_url': user.img_url,
+            'preferences': {
+                'dataProcessing': user_preferences.data_processing_consent if user_preferences else False,
+                'dataSharing': user_preferences.data_sharing_consent if user_preferences else False,
+            }
+        }
+
+        return JsonResponse(response_data)
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found.'}, status=404)
