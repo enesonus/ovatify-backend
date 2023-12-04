@@ -230,11 +230,12 @@ def remove_friend(request, userid):
                 user = User.objects.get(id=user_id)
                 friend = User.objects.get(id=friend_id)
 
-                friendship = Friend.objects.filter(user=user, friend=friend).first()
-                if not friendship:
+                # Check if the friendship exists
+                if not user.friends.filter(id=friend.id).exists():
                     return JsonResponse({'detail': 'Friendship does not exist'}, status=400)
 
-                friendship.delete()
+                # Remove the friend relationship using .remove() method
+                user.friends.remove(friend)
 
                 return JsonResponse({'detail': 'Friend removed successfully'}, status=200)
 
@@ -246,6 +247,7 @@ def remove_friend(request, userid):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
 
 @csrf_exempt
 @token_required
@@ -263,8 +265,8 @@ def add_friend(request, userid):
                 if Friend.objects.filter(user=user, friend=friend).exists():
                     return JsonResponse({'detail': 'Friendship already exists'}, status=400)
 
-                # Create a new friend instance
-                Friend.objects.create(user=user, friend=friend)
+                # Modify the existing friend relationship by using .add() method
+                user.friends.add(friend)
 
                 return JsonResponse({'detail': 'Friend added successfully'}, status=200)
 
