@@ -4,7 +4,8 @@ from collections import Counter
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.db.models import Prefetch
+from django.db.models import Prefetch, DateField, Count
+from django.db.models.functions import TruncDay
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -1222,3 +1223,29 @@ def get_user_profile(request, userid):
 
     except User.DoesNotExist:
         return JsonResponse({'error': 'User not found.'}, status=404)
+
+
+@csrf_exempt
+@token_required
+def get_recent_addition_by_count(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=4)
+        song_count_by_day = {start_date + timedelta(days=i): 0 for i in range(5)}
+        user_songs_per_day = user.usersongrating_set.filter(created_at__gt=start_date).prefetch_related('song').order_by('-created_at')
+        for song_rating in user_songs_per_day:
+            # Extract just the date part of the 'created_at' datetime
+            created_date = song_rating.created_at.date()
+
+            # Check if the created date is within our range
+            if start_date <= created_date <= end_date:
+                song_count_by_day[created_date] += 1
+        formatted_song_count_by_day = {date.strftime("%d %B, %A"): count for date, count in song_count_by_day.items()}
+        return JsonResponse({'song_counts': formatted_song_count_by_day}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
