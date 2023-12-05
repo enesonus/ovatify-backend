@@ -604,7 +604,7 @@ def get_random_genres(request, userid):
             }
             for genre in genres
         ]
-        return JsonResponse({'songs': serialized_genres}, status=200)
+        return JsonResponse({'genres': serialized_genres}, status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
