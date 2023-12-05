@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.db.models import Prefetch, DateField, Count
+from django.db.models import Prefetch, DateField, Count, Sum
 from django.db.models.functions import TruncDay
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
@@ -117,7 +117,7 @@ def update_user(request, userid):
         #TODO update the fields according to what the user wants to update
         return HttpResponse(status=204)
     except Exception as e:
-        return HttpResponse(status=404)    
+        return HttpResponse(status=404)
 
 @csrf_exempt
 @token_required
@@ -292,7 +292,7 @@ def edit_song_rating(request, userid):
 
             if userid is None or song_id is None or rating is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
-            
+
             try:
                 user = User.objects.get(id=userid)
             except User.DoesNotExist:
@@ -302,12 +302,12 @@ def edit_song_rating(request, userid):
                 song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({'error': 'Song not found'}, status=404)
-            
+
             try:
                 user_rating = UserSongRating.objects.get(user=user, song=song)
             except UserSongRating.DoesNotExist:
                 return JsonResponse({'error': 'User rating not found'}, status=404)
-            
+
             user_rating.delete()
 
             new_user_rating = UserSongRating(
@@ -326,7 +326,7 @@ def edit_song_rating(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
-    
+
 @csrf_exempt
 @token_required
 def delete_song_rating(request, userid):
@@ -337,7 +337,7 @@ def delete_song_rating(request, userid):
 
             if userid is None or song_id is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
-            
+
             try:
                 user = User.objects.get(id=userid)
             except User.DoesNotExist:
@@ -347,12 +347,12 @@ def delete_song_rating(request, userid):
                 song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({'error': 'Song not found'}, status=404)
-            
+
             try:
                 user_rating = UserSongRating.objects.get(user=user, song=song)
             except UserSongRating.DoesNotExist:
                 return JsonResponse({'error': 'User rating not found'}, status=404)
-            
+
             user_rating.delete()
 
             return JsonResponse({'message': 'User rating deleted successfully'}, status=201)
@@ -1101,7 +1101,7 @@ def recommend_songs(request, userid):
             request_type = data.get('request_type')
             if request_type is None:
                 return JsonResponse({'error': 'Missing parameter'}, status=400)
-            
+
             user_songs = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
             if user_songs is None:
@@ -1137,7 +1137,7 @@ def recommend_songs(request, userid):
                     return JsonResponse({'error': 'No recommendations based on genre can be made currently, please try again later'}, status=404)
                 tracks_info = recommendation_creator(spotify_recommendations)
                 return JsonResponse({'message': 'Recommendation based on genre is successful', 'tracks_info': tracks_info}, status=200)
-                
+
             elif request_type == 'artist':
                 artist_list = []
 
@@ -1148,7 +1148,7 @@ def recommend_songs(request, userid):
                         artist_list.append(artist.id)
 
                 list(set(artist_list))
-                    
+
                 if len(artist_list) > 5:
                     artist_list = artist_list[:5]
 
@@ -1200,9 +1200,9 @@ def get_user_profile(request, userid):
     try:
         if request.method != 'GET':
             return JsonResponse({'error': 'Invalid HTTP method. Only GET is allowed.'}, status=405)
-        
+
         user = User.objects.get(id=userid)
-        
+
         try:
             user_preferences = user.user_preferences
         except UserPreferences.DoesNotExist:
@@ -1246,6 +1246,31 @@ def get_recent_addition_by_count(request, userid):
                 song_count_by_day[created_date] += 1
         formatted_song_count_by_day = {date.strftime("%d %B, %A"): count for date, count in song_count_by_day.items()}
         return JsonResponse({'song_counts': formatted_song_count_by_day}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_profile_stats(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        friend_count = user.friends.count()
+        rating_aggregation = user.usersongrating_set.aggregate(
+            total_ratings=Count('rating'),
+            sum_ratings=Sum('rating')
+        )
+        rated_count = rating_aggregation['total_ratings']
+        sum_ratings = rating_aggregation['sum_ratings']
+        rating_average = 0
+        if rated_count > 0:
+            rating_average = sum_ratings / rated_count
+        return JsonResponse({'rated_count': rated_count, 'friend_count': friend_count,
+                             'rating_average': float(round(rating_average, 2))}, status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except Exception as e:
