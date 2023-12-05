@@ -608,6 +608,6 @@ def get_random_genres(request, userid):
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
-        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+        return JsonResponse({'error': 'Invalid number of genres'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
