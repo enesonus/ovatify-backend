@@ -1232,10 +1232,11 @@ def get_recent_addition_by_count(request, userid):
         return HttpResponse(status=405)
     try:
         user = User.objects.get(id=userid)
-        end_date = datetime.now().date()
+        end_date = timezone.now().date()
         start_date = end_date - timedelta(days=4)
+        start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
         song_count_by_day = {start_date + timedelta(days=i): 0 for i in range(5)}
-        user_songs_per_day = user.usersongrating_set.filter(created_at__gt=start_date).prefetch_related('song').order_by('-created_at')
+        user_songs_per_day = user.usersongrating_set.filter(created_at__gte=start_datetime).prefetch_related('song').order_by('-created_at')
         for song_rating in user_songs_per_day:
             # Extract just the date part of the 'created_at' datetime
             created_date = song_rating.created_at.date()
