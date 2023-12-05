@@ -1244,8 +1244,9 @@ def get_recent_addition_by_count(request, userid):
             # Check if the created date is within our range
             if start_date <= created_date <= end_date:
                 song_count_by_day[created_date] += 1
-        formatted_song_count_by_day = {date.strftime("%d %B, %A"): count for date, count in song_count_by_day.items()}
-        return JsonResponse({'song_counts': formatted_song_count_by_day}, status=200)
+        formatted_song_count_by_day = {date.strftime("%d-%m"): count for date, count in song_count_by_day.items()}
+        song_count_list = [{'date': date, 'count': count} for date, count in formatted_song_count_by_day.items()]
+        return JsonResponse({'song_counts': song_count_list}, status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except Exception as e:
