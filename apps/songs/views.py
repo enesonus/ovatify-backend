@@ -583,3 +583,31 @@ def get_genres_of_a_song(request, userid):
         return JsonResponse({'genres': serialized_genres}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_random_genres(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_genres = data.get('number_of_genres', 10)
+        number_of_genres = int(number_of_genres)
+        if number_of_genres <= 0:
+            return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+        genres = Genre.objects.order_by('?')[:number_of_genres]
+        serialized_genres = [
+            {
+                'id': genre.id,
+                'name': genre.name,
+            }
+            for genre in genres
+        ]
+        return JsonResponse({'songs': serialized_genres}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
