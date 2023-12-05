@@ -15,4 +15,5 @@ urlpatterns = [
  path('get-genres/', views.get_demanded_genres, name='get-genres'),
  path('get-songs-by-genre/', views.get_songs_by_genre, name='get-songs-by-genre'),
  path('get-song-genres/', views.get_genres_of_a_song, name='get-song-genres'),
+ path('get-random-genres/', views.get_random_genres, name='get-random-genres'),
 ]
