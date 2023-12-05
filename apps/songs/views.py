@@ -595,7 +595,7 @@ def get_random_genres(request, userid):
         number_of_genres = data.get('number_of_genres', 10)
         number_of_genres = int(number_of_genres)
         if number_of_genres <= 0:
-            return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+            return JsonResponse({'error': 'Invalid number of genres'}, status=400)
         genres = Genre.objects.order_by('?')[:number_of_genres]
         serialized_genres = [
             {
