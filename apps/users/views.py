@@ -579,10 +579,13 @@ def get_recently_added_songs(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-created_at')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-created_at').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-created_at')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings] # Get the song objects from the ratings
         serialized_songs = [
             {
@@ -610,10 +613,14 @@ def get_favorite_songs(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating', '-updated_at')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song')\
+                .order_by('-rating', '-updated_at').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating', '-updated_at')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]  # Get the song objects from the ratings
         # ratings = [song_rating.rating for song_rating in user_songs_ratings]  # In case we want to retrieve ratings
         serialized_songs = [
@@ -642,10 +649,14 @@ def get_favorite_genres(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]
         genre_counts = Counter()
         for song in songs:
@@ -654,7 +665,7 @@ def get_favorite_genres(request, userid):
             for genre in all_genres:
                 genre_counts[genre.name] += 1
 
-        return JsonResponse(dict(genre_counts), status=200)
+        return JsonResponse(dict(genre_counts.most_common()), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
@@ -670,10 +681,13 @@ def get_favorite_artists(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]
         artist_counts = Counter()
         for song in songs:
@@ -682,7 +696,7 @@ def get_favorite_artists(request, userid):
             for artist in all_artists:
                 artist_counts[artist.name] += 1
 
-        return JsonResponse(dict(artist_counts), status=200)
+        return JsonResponse(dict(artist_counts.most_common()), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
@@ -698,17 +712,20 @@ def get_favorite_moods(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]
         mood_counts = Counter()
         for song in songs:
             mood_label = Mood(song.mood).label
             mood_counts[mood_label] += 1
 
-        return JsonResponse(dict(mood_counts), status=200)
+        return JsonResponse(dict(mood_counts.most_common()), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
@@ -723,17 +740,20 @@ def get_favorite_tempos(request, userid):
         return HttpResponse(status=405)
     try:
         data = request.GET
-        number_of_songs: int = data.get('number_of_songs', 10)
-        number_of_songs = int(number_of_songs)
+        number_of_songs = data.get('number_of_songs')
         user = User.objects.get(id=userid)
-        user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
         songs = [song_rating.song for song_rating in user_songs_ratings]
         tempo_counts = Counter()
         for song in songs:
             tempo_label = Tempo(song.tempo).label
             tempo_counts[tempo_label] += 1
 
-        return JsonResponse(dict(tempo_counts), status=200)
+        return JsonResponse(dict(tempo_counts.most_common()), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
