@@ -247,13 +247,13 @@ def add_song(request, userid):
                             if genre_name:
                                 genre, genre_created = Genre.objects.get_or_create(name=genre_name)
                                 new_song.genres.add(genre)
-
+                        
                         for artist in track['artists']:
-                            artist_name = artist['name']
+                            artist_name = artist['name'].title()
                             artist_bio = get_artist_bio(artist_name)
-                            artist_img_url = artist_img if artist_img is not None else None
+                            artist_img_url = artist_img[artist_name]
                             artist_instance, artist_created = \
-                                Artist.objects.get_or_create(name=artist_name.title(),
+                                Artist.objects.get_or_create(name=artist_name,
                                                              id=artist['id'],
                                                              img_url=artist_img_url,
                                                              bio=artist_bio)

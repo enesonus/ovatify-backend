@@ -355,7 +355,7 @@ def delete_song_rating(request, userid):
 
             user_rating.delete()
 
-            return JsonResponse({'message': 'User rating deleted successfully'}, status=201)
+            return JsonResponse({'message': 'User rating deleted successfully'}, status=204)
         else:
             return JsonResponse({'error': 'Invalid method'}, status=400)
     except KeyError as e:
@@ -1104,7 +1104,7 @@ def recommend_songs(request, userid):
 
             user_songs = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
-            if user_songs is None:
+            if user_songs.exists() is False:
                 return JsonResponse({'error': 'No songs found for the user, cannot make recommendation'}, status=404)
 
             client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
@@ -1337,6 +1337,60 @@ def recommend_since_you_like(request, userid):
                 return JsonResponse({'message': 'Recommendation based on artist is successful', 'recommendations': recommendations}, status=200)
             else:
                 return JsonResponse({'error': 'Invalid request type'}, status=400)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    
+@csrf_exempt
+@token_required
+def recommend_friend_mix(request, userid):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = request.GET
+            count = data.get('count')
+
+            count = int(count)
+
+            if count > 100 or count < 1:
+                return JsonResponse({'error': 'Invalid count'}, status=400)
+
+            try:
+                user = User.objects.get(id=userid)
+                friends_list = Friend.objects.filter(user=user)
+
+                if friends_list.exists() is False:
+                    return JsonResponse({'error': 'No friends found for the user, cannot make recommendation'}, status=404)
+                
+                songs_seed = []
+                for friend in friends_list:
+                    friend_songs = UserSongRating.objects.filter(user=friend.friend).order_by('-rating')
+                    for song in friend_songs:
+                        songs_seed.append(song.song.id)
+                list(set(songs_seed))
+
+                if len(songs_seed) > 5:
+                    songs_seed = random.sample(songs_seed, 5)
+                
+                params = {
+                    'limit': count,
+                    'seed_tracks': songs_seed
+                }
+
+                client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+                sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+                spotify_recommendations = sp.recommendations(**params)
+
+                if spotify_recommendations['tracks'] is None:
+                    return JsonResponse({'error': 'No recommendations based on friends can be made currently, please try again later'}, status=404)
+                tracks_info = recommendation_creator(spotify_recommendations)
+                return JsonResponse({'message': 'Recommendation based on friends is successful', 'tracks_info': tracks_info}, status=200)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)
