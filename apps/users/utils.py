@@ -110,6 +110,9 @@ def getFavoriteTempos(userid: str, number_of_songs: int):
 def recommendation_creator(spotify_recommendations):
     tracks_info = []
 
+    if not spotify_recommendations:
+        return tracks_info
+
     for track in spotify_recommendations['tracks']:
         track_name = track['name'].title()
         release_year = track['album']['release_date'][:4]  # Extracting the first 4 characters for the release year
@@ -128,4 +131,5 @@ def recommendation_creator(spotify_recommendations):
             'image_url': album_image_url,
         }
         tracks_info.append(track_info)
-
+    
+    return tracks_info
