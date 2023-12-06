@@ -216,7 +216,7 @@ def add_song_rating(request, userid):
         return JsonResponse({'error': f'Invalid data format: {str(e)}'}, status=400)
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
-        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+        return JsonResponse({'error': f'An unexpected error occurred{str(e)}'}, status=500)
 
 
 @csrf_exempt

@@ -251,13 +251,22 @@ def add_song(request, userid):
                         for artist in track['artists']:
                             artist_name = artist['name'].title()
                             artist_bio = get_artist_bio(artist_name)
-                            artist_img_url = artist_img[artist_name]
-                            artist_instance, artist_created = \
-                                Artist.objects.get_or_create(name=artist_name,
-                                                             id=artist['id'],
-                                                             img_url=artist_img_url,
-                                                             bio=artist_bio)
-                            new_song.artists.add(artist_instance)
+                            artist_img_url = artist_img if artist_img is not None else None
+
+                            db_artist = Artist.objects.filter(id=artist['id']).first()
+                            if db_artist is None:
+                                artist = Artist.objects.create(
+                                                id=artist['id'],
+                                                name=artist_name.title(),
+                                                img_url=artist_img_url,
+                                                bio=artist_bio)
+                                db_artist = artist
+                            if (db_artist.bio != artist_bio or
+                                    db_artist.img_url != artist_img_url):
+                                db_artist.bio = artist_bio
+                                db_artist.img_url = artist_img_url
+                                db_artist.save()
+                            new_song.artists.add(db_artist)
 
                         album_name = track['album']['name'].title() if 'album' in track and 'name' in track['album'] else track['name'].title() + ' - Single'
                         album_instance, album_created = Album.objects.get_or_create(id = track['album']['id'] ,name=album_name, release_year=track['album']['release_date'][:4], img_url=track['album']['images'][0]['url'])
@@ -272,7 +281,7 @@ def add_song(request, userid):
                             if created and existing_rating.count() == 0:
                                 user_song_rating, rating_created = \
                                 UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
-                                return JsonResponse({'message': f'Rating is added & song added successfully'}, status=200)
+                                return JsonResponse({'message': f'Rating & song is added successfully'}, status=200)
                             elif not created and existing_rating.count() == 0:
                                 UserSongRating.objects.get_or_create(user=user, song=new_song, rating=rating)
                                 return JsonResponse({'message': f'Rating is added successfully'}, status=200)
@@ -287,10 +296,10 @@ def add_song(request, userid):
                             return JsonResponse({'message': f'You have already added this song'}, status=400)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
-        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+        return JsonResponse({'error': f"A KeyError occurred: {str(e)}"}, status=500)
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
-        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+        return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
     
 @csrf_exempt
 @token_required
