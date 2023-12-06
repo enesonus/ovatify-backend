@@ -86,7 +86,8 @@ def create_user(request, userid):
         if User.objects.filter(email=email).exists():  # if user already exists
             return HttpResponse(status=400)
         random_username: str = email.split('@')[0] + str(datetime.now().timestamp()).split('.')[0]
-        User.objects.create(id=userid, username=random_username, email=email, last_login=timezone.now())
+        user = User.objects.create(id=userid, username=random_username, email=email, last_login=timezone.now())
+        UserPreferences.objects.create(user=user, data_processing_consent=True, data_sharing_consent=True)
         return HttpResponse(status=201)
     except Exception as e:
         #TODO logging.("create_user: " + str(e))
