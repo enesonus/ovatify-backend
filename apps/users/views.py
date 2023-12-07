@@ -1425,3 +1425,60 @@ def recommend_friend_mix(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    
+@csrf_exempt
+@token_required
+def recommend_friend_listen(request, userid):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = request.GET
+            count = data.get('count')
+
+            limit = 1
+            
+            count = int(count)
+            if count < 1:
+                return JsonResponse({'error': 'Invalid count'}, status=400)
+            friends = Friend.objects.filter(user=userid)
+
+            friends_list = []
+
+            for user in friends:
+                if UserPreferences.objects.get(user=user.friend).data_processing_consent is True:
+                    friends_list.append(user)
+
+            if len(friends_list) < 1:
+                    return JsonResponse({'error': 'No friends found for the user, cannot make recommendation'}, status=404)
+
+            friend_count = len(friends_list)
+        
+            if count > friend_count:
+                limit = count // friend_count
+            songs_list = []
+            
+            for friend in friends_list:
+                friend_songs = UserSongRating.objects.filter(user=friend.friend).order_by('-rating')[:10]    
+                for rating in friend_songs:
+                    song = Song.objects.get(id=rating.song.id)
+
+                    track_info = {
+                        'name': song.name,
+                        'artist_name': [artist.name for artist in song.artists.all()],
+                        'release_year': song.release_year,
+                        'id': song.id,
+                        'album_name': [album.name for album in song.albums.all()],
+                        'image_url': song.img_url,
+                    }
+                    songs_list.append(track_info)
+            if len(songs_list) > count:
+                songs_list = random.sample(songs_list, count)
+
+            return JsonResponse({'message': 'Recommendation based on friends is successful', 'tracks_info': songs_list}, status=200)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
