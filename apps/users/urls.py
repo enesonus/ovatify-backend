@@ -45,4 +45,5 @@ urlpatterns = [
     path('get-profile-stats/', view=views.get_profile_stats, name='get-profile-stats'),
     path('recommend-since-you-like/', view=views.recommend_since_you_like, name='recommend-since-you-like'),
     path('recommend-friend-mix/', view=views.recommend_friend_mix, name='recommend-friend-mix'),
+    path('recommend-friend-listen/', view=views.recommend_friend_listen, name='recommend-friend-listen'),
 ]
