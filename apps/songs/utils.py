@@ -116,6 +116,6 @@ def flush_database():
 
 def getFirstRelatedSong(genre_id):
     genre = Genre.objects.get(id=genre_id)
-    genre_song = genre.genresong_set.first()
+    genre_song = genre.genresong_set.order_by('-created_at').first()
     return genre_song.song.img_url
 
