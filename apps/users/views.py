@@ -1058,59 +1058,68 @@ def get_all_global_requests(request, userid):
     }
     return JsonResponse(context, status=200)
 
+
 @csrf_exempt
 @token_required
 def edit_user_preferences(request, user_id):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
-
-    if request.method == 'PUT':
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-
+    try:
+        data = json.loads(request.body)
         if not data:
             return JsonResponse({'error': 'No fields provided for update'}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
 
-        new_username = data.get('username')
-        if new_username and new_username != user.username and User.objects.filter(username=new_username).exists():
+    # Handle username
+    new_username = data.get('username')
+    if new_username is not None:
+        new_username = new_username.strip()
+        if len(new_username) < 6 or len(new_username) > 16:
+            return JsonResponse({'error': 'Username must be between 6 and 16 characters long'}, status=400)
+        if new_username != user.username and User.objects.filter(username=new_username).exists():
             return JsonResponse({'error': 'Username already in use'}, status=400)
+        user.username = new_username
 
-        for field, value in data.items():
-            if field == 'username':
-                user.username = value
-            elif field == 'email':
-                user.email = value
-            elif field == 'img_url':
-                user.img_url = value
-            elif field == 'data_processing_consent':
-                user_preferences = user.user_preferences
+    # Handle email
+    new_email = data.get('email')
+    if new_email is not None:
+        new_email = new_email.strip()
+        if new_email != user.email and User.objects.filter(email=new_email).exists():
+            return JsonResponse({'error': 'Email already in use'}, status=400)
+        user.email = new_email
 
-                if not user_preferences:
-                    return JsonResponse({'error': 'User preferences not found'}, status=400)
+    # Handle image
+    new_img_url = data.get('img_url', user.img_url)
+    if new_img_url is not None:
+        user.img_url = new_img_url
 
-                user_preferences.data_processing_consent = value
-                user_preferences.save()
+    # Handle data processing consent
+    dpc = data.get('data_processing_consent')
+    if dpc is not None:
+        if user.userpreferences:
+            user.userpreferences.data_processing_consent = dpc
+        else:
+            user.userpreferences = UserPreferences.objects.create(user=user, data_processing_consent=dpc,
+                                                                  data_sharing_consent=True)
+        user.userpreferences.save()
 
-            elif field == 'data_sharing_consent' in data:
+    # Handle data sharing consent
+    dsc = data.get('data_sharing_consent')
+    if dsc is not None:
+        if user.userpreferences:
+            user.userpreferences.data_sharing_consent = dsc
+        else:
+            user.userpreferences = UserPreferences.objects.create(user=user, data_sharing_consent=dsc,
+                                                                  data_processing_consent=True)
+        user.userpreferences.save()
+    user.save()
+    return JsonResponse(data={}, status=204)
 
-                user_preferences = user.user_preferences
-
-                if not user_preferences:
-                    return JsonResponse({'error': 'User preferences not found'}, status=400)
-
-                user_preferences.data_sharing_consent = value
-                user_preferences.save()
-
-
-        user.save()
-
-        return JsonResponse({'message': 'User preferences updated successfully'}, status = 200)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 @csrf_exempt
 @token_required
@@ -1216,35 +1225,32 @@ def recommend_songs(request, userid):
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
+
 @csrf_exempt
 @token_required
 def get_user_profile(request, userid):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed.'}, status=405)
     try:
-        if request.method != 'GET':
-            return JsonResponse({'error': 'Invalid HTTP method. Only GET is allowed.'}, status=405)
-
         user = User.objects.get(id=userid)
-
-        try:
-            user_preferences = user.user_preferences
-        except UserPreferences.DoesNotExist:
-            # Handle the case when user_preferences is not present
-            user_preferences = None
-
-        response_data = {
-            'id': user.id,
-            'name': user.username,
-            'img_url': user.img_url,
-            'preferences': {
-                'dataProcessing': user_preferences.data_processing_consent if user_preferences else False,
-                'dataSharing': user_preferences.data_sharing_consent if user_preferences else False,
-            }
-        }
-
-        return JsonResponse(response_data)
-
     except User.DoesNotExist:
         return JsonResponse({'error': 'User not found.'}, status=404)
+    try:
+        user_preferences = user.userpreferences
+    except UserPreferences.DoesNotExist:
+        user.userpreferences = UserPreferences.objects.create(user=user)
+        user_preferences = user.userpreferences
+        user.userpreferences.save()
+    response_data = {
+        'id': user.id,
+        'name': user.username,
+        'img_url': user.img_url,
+        'preferences': {
+            'data_processing': user_preferences.data_processing_consent,
+            'data_sharing': user_preferences.data_sharing_consent,
+        }
+    }
+    return JsonResponse(response_data)
 
 
 @csrf_exempt
