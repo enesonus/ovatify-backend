@@ -1381,7 +1381,6 @@ def recommend_friend_mix(request, userid):
         else:
             data = request.GET
             count = data.get('count')
-
             count = int(count)
 
             if count > 100 or count < 1:
@@ -1391,11 +1390,17 @@ def recommend_friend_mix(request, userid):
                 user = User.objects.get(id=userid)
                 friends_list = Friend.objects.filter(user=user)
 
-                if friends_list.exists() is False:
+                available_friends = []
+                for friend in friends_list:
+                    if UserPreferences.objects.get(user=friend.friend).data_processing_consent is True:
+                        available_friends.append(friend)
+
+                if len(available_friends) < 1:
                     return JsonResponse({'error': 'No friends found for the user, cannot make recommendation'}, status=404)
                 
                 songs_seed = []
-                for friend in friends_list:
+                for friend in available_friends:
+
                     friend_songs = UserSongRating.objects.filter(user=friend.friend).order_by('-rating')
                     for song in friend_songs:
                         songs_seed.append(song.song.id)
