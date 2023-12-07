@@ -112,3 +112,10 @@ def flush_database():
             all_artist = Artist.all_objects.all()
             for artist in all_artist:
                 artist.hard_delete()
+
+
+def getFirstRelatedSong(genre_id):
+    genre = Genre.objects.get(id=genre_id)
+    genre_song = genre.genresong_set.first()
+    return genre_song.song.img_url
+

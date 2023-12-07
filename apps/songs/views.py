@@ -8,7 +8,8 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
-from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info
+from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info, \
+    getFirstRelatedSong
 from songs.models import (Instrument, Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo)
@@ -526,7 +527,6 @@ def get_demanded_genres(request, userid):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-
 @csrf_exempt
 @token_required
 def get_songs_by_genre(request, userid):
@@ -610,6 +610,7 @@ def get_random_genres(request, userid):
             {
                 'id': genre.id,
                 'name': genre.name,
+                'img_url': getFirstRelatedSong(genre.id)
             }
             for genre in genres
         ]
