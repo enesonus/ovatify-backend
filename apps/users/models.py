@@ -39,8 +39,8 @@ class UserSongRating(CoreModel):
 class UserPreferences(CoreModel):
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    data_processing_consent = models.BooleanField()
-    data_sharing_consent = models.BooleanField()
+    data_processing_consent = models.BooleanField(default=True)
+    data_sharing_consent = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Preferences of {self.user.__str__()}"
