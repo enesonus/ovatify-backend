@@ -1123,15 +1123,15 @@ def edit_user_preferences(request, user_id):
 
 @csrf_exempt
 @token_required
-def recommend_songs(request, userid):
+def recommend_you_might_like(request, userid):
     try:
         if request.method != 'GET':
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
             data = request.GET
-            request_type = data.get('request_type')
-            if request_type is None:
-                return JsonResponse({'error': 'Missing parameter'}, status=400)
+            count = int(data.get('count'))
+            if count is None or count < 1 or count > 100:
+                return JsonResponse({'error': 'Wrong parameter'}, status=400)
 
             user_songs = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
@@ -1141,83 +1141,26 @@ def recommend_songs(request, userid):
             client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
             sp = spotipy.Spotify(client_credentials_manager=client_credentials)
 
-            if request_type == 'genre':
-                genre_list = []
+            track_list = []
 
-                for songs in user_songs:
-                    db_song = Song.objects.get(id=songs.song.id)
+            for songs in user_songs:
+                track_list.append(songs.song.id)
 
-                    for genre in db_song.genres.all():
-                        genre_list.append(genre.name.lower())
+            list(set(track_list))
 
-                list(set(genre_list))
-                available_genre_seeds = sp.recommendation_genre_seeds()
-                genre_list = [genre for genre in genre_list if genre in available_genre_seeds['genres']]
+            if len(track_list) > 5:
+                track_list =  random.sample(track_list, 5)
 
-                if len(genre_list) < 1:
-                    random_genre = random.choice(available_genre_seeds['genres'])
-                    genre_list.append(random_genre)
+            params = {
+                'limit': count,
+                'seed_tracks': track_list
+            }
+            spotify_recommendations = sp.recommendations(**params)
 
-                params = {
-                    'limit': 10,
-                    'seed_genres': genre_list
-                }
-                spotify_recommendations = sp.recommendations(**params)
-
-                if spotify_recommendations['tracks'] is None:
-                    return JsonResponse({'error': 'No recommendations based on genre can be made currently, please try again later'}, status=404)
-                tracks_info = recommendation_creator(spotify_recommendations)
-                return JsonResponse({'message': 'Recommendation based on genre is successful', 'tracks_info': tracks_info}, status=200)
-
-            elif request_type == 'artist':
-                artist_list = []
-
-                for songs in user_songs:
-                    db_song = Song.objects.get(id=songs.song.id)
-
-                    for artist in db_song.artists.all():
-                        artist_list.append(artist.id)
-
-                list(set(artist_list))
-
-                if len(artist_list) > 5:
-                    artist_list = artist_list[:5]
-
-                params = {
-                    'limit': 10,
-                    'seed_artists': artist_list,
-                }
-                spotify_recommendations = sp.recommendations(**params)
-
-                if spotify_recommendations['tracks'] is None:
-                    return JsonResponse({'error': 'No recommendations based on artist can be made currently, please try again later'}, status=404)
-                tracks_info = recommendation_creator(spotify_recommendations)
-                return JsonResponse({'message': 'Recommendation based on artist is successful', 'tracks_info': tracks_info}, status=200)
-
-            elif request_type == 'track':
-                track_list = []
-
-                for songs in user_songs:
-                    db_song = Song.objects.get(id=songs.song.id)
-                    track_list.append(db_song.id)
-
-                list(set(track_list))
-
-                if len(track_list) > 5:
-                    track_list = track_list[:5]
-
-                params = {
-                    'limit': 10,
-                    'seed_tracks': track_list
-                }
-                spotify_recommendations = sp.recommendations(**params)
-
-                if spotify_recommendations['tracks'] is None:
-                    return JsonResponse({'error': 'No recommendations based on track can be made currently, please try again later'}, status=404)
-                tracks_info = recommendation_creator(spotify_recommendations)
-                return JsonResponse({'message': 'Recommendation based on track is successful', 'tracks_info': tracks_info}, status=200)
-            else:
-                return JsonResponse({'error': 'Invalid request type'}, status=400)
+            if spotify_recommendations['tracks'] is None:
+                return JsonResponse({'error': 'No recommendations based on track can be made currently, please try again later'}, status=404)
+            tracks_info = recommendation_creator(spotify_recommendations)
+            return JsonResponse({'message': 'Recommendation based on track is successful', 'tracks_info': tracks_info}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)

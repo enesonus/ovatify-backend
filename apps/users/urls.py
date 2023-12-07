@@ -39,7 +39,7 @@ urlpatterns = [
     path('get-all-global-requests/', view=views.get_all_global_requests, name='get-all-requests'),
     path('delete-request/', view=views.delete_request, name='delete-request'),
     path('edit-user-preferences/', view = views.edit_user_preferences, name= 'edit_user_preferences'),
-    path('recommend-songs/', view = views.recommend_songs, name='recommend-songs'),
+    path('recommend-you-might-like/', view = views.recommend_you_might_like, name='recommend-you-might-like'),
     path('get-user-profile/', view = views.get_user_profile, name= 'get-user-profile'),
     path('get-recent-addition-counts/', view=views.get_recent_addition_by_count, name='get-recent-addition-count'),
     path('get-profile-stats/', view=views.get_profile_stats, name='get-profile-stats'),
