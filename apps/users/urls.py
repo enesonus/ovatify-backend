@@ -46,4 +46,8 @@ urlpatterns = [
     path('recommend-since-you-like/', view=views.recommend_since_you_like, name='recommend-since-you-like'),
     path('recommend-friend-mix/', view=views.recommend_friend_mix, name='recommend-friend-mix'),
     path('recommend-friend-listen/', view=views.recommend_friend_listen, name='recommend-friend-listen'),
+    path('export-by-genre/', views.export_by_genre, name='export-by-genre'),
+    path('export-by-artist/', views.export_by_artist, name='export-by-artist'),
+    path('get-library-artist-names/', views.get_library_artist_names, name='get-library-artist-names'),
+    path('get-library-genre-names/', views.get_library_genre_names, name='get-library-genre-names'),
 ]
