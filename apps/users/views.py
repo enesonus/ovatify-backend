@@ -1,5 +1,6 @@
 import json
 import logging
+import tempfile
 from collections import Counter
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
@@ -1430,3 +1431,176 @@ def recommend_friend_listen(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+
+@csrf_exempt
+@token_required
+def export_by_genre(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        genre_name = data.get('genre')
+        user = User.objects.get(id=userid)
+        if not genre_name:
+            return JsonResponse({'error': 'Missing filter'}, status=400)
+        songs_queryset = Song.objects.all()
+        genre = Genre.objects.get(name=genre_name)
+        songs_queryset = songs_queryset.filter(genres=genre)
+        user_songs_ratings = user.usersongrating_set.prefetch_related(
+            Prefetch('song', queryset=songs_queryset, to_attr='filtered_songs')
+        ).order_by('-rating', '-updated_at').all()
+
+        export_songs = [rating.filtered_songs for rating in user_songs_ratings if rating.filtered_songs]
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'genres': [genre.name for genre in song.genres.all()],
+                'artists': [artist.name for artist in song.artists.all()],
+                'albums': [album.name for album in song.albums.all()],
+                'instruments': [instrument.name for instrument in song.instruments.all()],
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),
+                'tempo': Tempo(song.tempo).label,
+                'mood': Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
+                'replay_count': song.replay_count,
+                'version': song.version,
+                'img_url': song.img_url
+            }
+            for song in export_songs
+        ]
+        data_to_send = json.dumps(serialized_songs, indent=4, ensure_ascii=False)
+        # Create a temporary file to write JSON data
+        with tempfile.NamedTemporaryFile(delete=False, mode='w+', suffix='.json', encoding='utf-8') as tmp_file:
+            tmp_file.write(data_to_send)
+            tmp_file_path = tmp_file.name
+
+        # Set up HttpResponse to send it as a file
+        with open(tmp_file_path, 'r', encoding='utf-8') as file:
+            response = HttpResponse(file, content_type='application/json; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="songs_data.json"'
+
+        return response
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Genre.DoesNotExist:
+        return JsonResponse({'error': 'Genre does not exist'}, status=404)
+    except Artist.DoesNotExist:
+        return JsonResponse({'error': 'Artist does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid input'}, status=400)
+    except (IOError, OSError, FileNotFoundError, PermissionError, ValueError, MemoryError) as e:
+        return JsonResponse({'error': f'File operation error: {str(e)}'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def export_by_artist(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        artist_name = data.get('artist')
+        user = User.objects.get(id=userid)
+        if not artist_name:
+            return JsonResponse({'error': 'Missing filter'}, status=400)
+
+        songs_queryset = Song.objects.all()
+        artist = Artist.objects.get(name=artist_name)
+        songs_queryset = songs_queryset.filter(artists=artist)
+        user_songs_ratings = user.usersongrating_set.prefetch_related(
+            Prefetch('song', queryset=songs_queryset, to_attr='filtered_songs')
+        ).order_by('-rating', '-updated_at').all()
+
+        export_songs = [rating.filtered_songs for rating in user_songs_ratings if rating.filtered_songs]
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'genres': [genre.name for genre in song.genres.all()],
+                'artists': [artist.name for artist in song.artists.all()],
+                'albums': [album.name for album in song.albums.all()],
+                'instruments': [instrument.name for instrument in song.instruments.all()],
+                'release_year': song.release_year,
+                'duration': song.duration.total_seconds(),
+                'tempo': Tempo(song.tempo).label,
+                'mood': Mood(song.mood).label,
+                'recorded_environment': RecordedEnvironment(song.recorded_environment).label,
+                'replay_count': song.replay_count,
+                'version': song.version,
+                'img_url': song.img_url
+            }
+            for song in export_songs
+        ]
+        data_to_send = json.dumps(serialized_songs, indent=4, ensure_ascii=False)
+        # Create a temporary file to write JSON data
+        with tempfile.NamedTemporaryFile(delete=False, mode='w+', suffix='.json', encoding='utf-8') as tmp_file:
+            tmp_file.write(data_to_send)
+            tmp_file_path = tmp_file.name
+
+        # Set up HttpResponse to send it as a file
+        with open(tmp_file_path, 'r', encoding='utf-8') as file:
+            response = HttpResponse(file, content_type='application/json; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="songs_data.json"'
+
+        return response
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Genre.DoesNotExist:
+        return JsonResponse({'error': 'Genre does not exist'}, status=404)
+    except Artist.DoesNotExist:
+        return JsonResponse({'error': 'Artist does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid input'}, status=400)
+    except (IOError, OSError, FileNotFoundError, PermissionError, ValueError, MemoryError) as e:
+        return JsonResponse({'error': f'File operation error: {str(e)}'}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_library_artist_names(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()
+        artists = set()
+        for rating in user_songs_ratings:
+            song = rating.song
+            artists.update(artist.name for artist in song.artists.all())
+        if not artists:
+            return JsonResponse({'error': 'No artist is found for the user'}, status=404)
+        return JsonResponse({'artists': list(artists)}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_library_genre_names(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        user = User.objects.get(id=userid)
+        user_songs_ratings = user.usersongrating_set.prefetch_related('song').all()
+        genres = set()
+        for rating in user_songs_ratings:
+            song = rating.song
+            genres.update(genre.name for genre in song.genres.all())
+        if not genres:
+            return JsonResponse({'error': 'No genre is found for the user'}, status=404)
+        return JsonResponse({'genres': list(genres)}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
