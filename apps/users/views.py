@@ -1364,6 +1364,9 @@ def recommend_friend_mix(request, userid):
 
                 if len(songs_seed) > 5:
                     songs_seed = random.sample(songs_seed, 5)
+
+                elif len(songs_seed) < 1:
+                    return JsonResponse({'error': 'No songs found for friends, cannot make recommendation'}, status=404)
                 
                 params = {
                     'limit': count,
@@ -1435,6 +1438,8 @@ def recommend_friend_listen(request, userid):
                     songs_list.append(track_info)
             if len(songs_list) > count:
                 songs_list = random.sample(songs_list, count)
+            elif len(songs_list) < 1:
+                return JsonResponse({'error': 'No songs found for friends, cannot make recommendation'}, status=404)
 
             return JsonResponse({'message': 'Recommendation based on friends is successful', 'tracks_info': songs_list}, status=200)
     except KeyError as e:
