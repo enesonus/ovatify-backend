@@ -89,18 +89,12 @@ def search_db(request, userid):
         for song_id, match_ratio in sorted_songs:
             song = Song.objects.get(pk=song_id)
             song_info = {
-                'song_id': song.id,
-                'song_name': song.name,
+                'spotify_id': song.id,
+                'track_name': song.name,
                 'release_year': song.release_year,
-                'duration': song.duration.total_seconds(),
-                'tempo': song.tempo,
-                'mood': song.mood,
-                'recorded_environment': song.recorded_environment,
-                'replay_count': song.replay_count,
-                'version': song.version,
-                'album': [album.name for album in song.albums.all()],
+                'album_name': [album.name for album in song.albums.all()],
                 'artist': [artist.name for artist in song.artists.all()],
-                'genres': [genre.name for genre in song.genres.all()],
+                'album_url': song.img_url,
             }
             songs_info.append(song_info)
 
