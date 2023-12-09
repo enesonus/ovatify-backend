@@ -1253,62 +1253,74 @@ def get_profile_stats(request, userid):
 @token_required
 def recommend_since_you_like(request, userid):
     try:
-        if request.method != 'POST':
+        if request.method != 'GET':
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
-            data = json.loads(request.body, encoding='utf-8')
-            request_type = data.get('request_type')  # Add this line to get Spotify ID from the request
-            parameters = data.get('parameters')
+            data = request.GET
+            count = int(data.get('count'))
 
             client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
             sp = spotipy.Spotify(client_credentials_manager=client_credentials)
 
-            if request_type is None:
-                return JsonResponse({'error': 'Missing parameter'}, status=404)
-            elif request_type == 'genre':
-                recommendations = {}
-                for genre in parameters:
-                    seed = genre.lower()
-                    available_genre_seeds = sp.recommendation_genre_seeds()
+            if count is None or count < 1 or count > 100:
+                return JsonResponse({'error': 'Wrong parameter'}, status=404)
+            
+            available_seeds = sp.recommendation_genre_seeds()['genres']
 
-                    if genre not in available_genre_seeds['genres']:
-                        return JsonResponse({'error': 'No recommendations based on genre can be made currently, please try again later'}, status=404)
-                    else:
-                        params = {
-                            'limit': 5,
-                            'seed_genres': [genre]
-                        }
-                        spotify_recommendations = sp.recommendations(**params)
-                        songs = recommendation_creator(spotify_recommendations)
-                        recommendations[genre] = songs
-                return JsonResponse({'message': 'Recommendation based on genre is successful', 'recommendations': recommendations}, status=200)
+            ratings = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
-            elif request_type == 'artist':
-                recommendations = {}
-                for artist in parameters:
-                    
-                    result = sp.search(artist, type='artist')
+            user_genre_seeds = []
 
-                    artist_res = result['artists']['items']
+            for rating in ratings:
+                song = Song.objects.get(id=rating.song.id)
+                for genre in song.genres.all():
+                    user_genre_seeds.append(genre.name.lower())
+            list(set(user_genre_seeds))
 
-                    if artist is None:
-                        return JsonResponse({'error': 'No recommendations based on artist can be made currently, please try again later'}, status=404)
-                    
-                    else:
+            user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_seeds]
 
-                        seed = artist_res[0]['id']
+            if len(user_genre_seeds) > 2:
+                user_genre_seeds = random.sample(user_genre_seeds, 2)
+            elif len(user_genre_seeds) < 1:
+                return JsonResponse({'error': 'No genre found for the user, cannot make recommendation'}, status=404)
+            
+            artist_list = {}
 
-                        params = {
-                            'limit': 5,
-                            'seed_artists': [seed]
-                        }
+            for rating in ratings:
+                song = Song.objects.get(id=rating.song.id)
+                for artist in song.artists.all():
+                    artist_list[artist.name] = artist.id
 
-                        spotify_recommendations = sp.recommendations(**params)
-                        songs = recommendation_creator(spotify_recommendations)
-                        recommendations[artist] = songs
-                return JsonResponse({'message': 'Recommendation based on artist is successful', 'recommendations': recommendations}, status=200)
-            else:
-                return JsonResponse({'error': 'Invalid request type'}, status=400)
+            if len(artist_list) > 2:
+                selected_artists = random.sample(artist_list.items(), 2)
+                artist_list = dict(selected_artists)
+
+            elif len(artist_list) < 1:
+                return JsonResponse({'error': 'No artist found for the user, cannot make recommendation'}, status=404)
+            
+            results = {}
+            
+            for genre in user_genre_seeds:
+                params = {
+                    'limit': count,
+                    'seed_genres': [genre]
+                }
+                spotify_recommendations = sp.recommendations(**params)
+                if spotify_recommendations['tracks'] is None:
+                    return JsonResponse({'error': 'No recommendations can be made currently, please try again later'}, status=404)
+                results[genre] = recommendation_creator(spotify_recommendations)
+            
+            for artist in artist_list:
+                params = {
+                    'limit': count,
+                    'seed_artists': [artist_list[artist]]
+                }
+                spotify_recommendations = sp.recommendations(**params)
+                if spotify_recommendations['tracks'] is None:
+                    return JsonResponse({'error': 'No recommendations can be made currently, please try again later'}, status=404)
+                results[artist] = recommendation_creator(spotify_recommendations)
+
+            return JsonResponse({'message': 'Recommendation based on what you listen is successful', 'tracks_info': results}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)
@@ -1344,10 +1356,10 @@ def recommend_friend_mix(request, userid):
                 
                 songs_seed = []
                 for friend in available_friends:
-
                     friend_songs = UserSongRating.objects.filter(user=friend.friend).order_by('-rating')
                     for song in friend_songs:
                         songs_seed.append(song.song.id)
+                        
                 list(set(songs_seed))
 
                 if len(songs_seed) > 5:
