@@ -6,7 +6,7 @@ Ovatify is a music platform designed to offer a unique and personalized experien
 
 ## Features
 
-- Stream a wide range of songs and albums
+- Display a wide range of songs and albums
 - Personalized music recommendations
 - User rating system for songs
 - Social features, including friend connections
