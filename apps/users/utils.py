@@ -124,11 +124,10 @@ def recommendation_creator(spotify_recommendations):
 
         track_info = {
             'name': track_name,
-            'artist_name': artists_list,
+            'main_artist': artists_list,
             'release_year': release_year,
             'id': spotify_id,
-            'album_name': album_name,
-            'image_url': album_image_url,
+            'img_url': album_image_url,
         }
         tracks_info.append(track_info)
     

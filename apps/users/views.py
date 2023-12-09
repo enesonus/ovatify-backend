@@ -1429,11 +1429,10 @@ def recommend_friend_listen(request, userid):
 
                     track_info = {
                         'name': song.name,
-                        'artist_name': [artist.name for artist in song.artists.all()],
+                        'main_artist': [artist.name for artist in song.artists.all()],
                         'release_year': song.release_year,
                         'id': song.id,
-                        'album_name': [album.name for album in song.albums.all()],
-                        'image_url': song.img_url,
+                        'img_url': song.img_url,
                     }
                     songs_list.append(track_info)
             if len(songs_list) > count:
