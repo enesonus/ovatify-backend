@@ -1266,27 +1266,27 @@ def recommend_since_you_like(request, userid):
             if count is None or count < 1 or count > 100:
                 return JsonResponse({'error': 'Wrong parameter'}, status=404)
 
-            global available_genre_seeds
-            if available_genre_seeds is None:
-                available_genre_seeds = sp.recommendation_genre_seeds()['genres']
+            # global available_genre_seeds
+            # if available_genre_seeds is None:
+            #     available_genre_seeds = sp.recommendation_genre_seeds()['genres']
 
             ratings = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
             user_genre_seeds = []
+            user_genre_seeds = getFavoriteGenres(userid,
+                                                 number_of_songs=20)
+            user_genre_seeds = [seed for seed, _ in user_genre_seeds]
+            # for rating in ratings:
+            #     song = Song.objects.get(id=rating.song.id)
+            #     for genre in song.genres.all():
+            #         user_genre_seeds.append(genre.name.lower())
+            # list(set(user_genre_seeds))
 
-            for rating in ratings:
-                song = Song.objects.get(id=rating.song.id)
-                for genre in song.genres.all():
-                    user_genre_seeds.append(genre.name.lower())
-            list(set(user_genre_seeds))
+            # user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_genre_seeds]
 
-            user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_genre_seeds]
-
-            if len(user_genre_seeds) > 2:
-                user_genre_seeds = random.sample(user_genre_seeds, 2)
-            elif len(user_genre_seeds) < 1:
+            if len(user_genre_seeds) < 1:
                 return JsonResponse({'error': 'No genre found for the user, cannot make recommendation'}, status=404)
-            
+            user_genre_seeds = user_genre_seeds[:2]
             artist_list = {}
 
             for rating in ratings:
