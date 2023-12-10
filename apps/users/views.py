@@ -15,7 +15,7 @@ import spotipy
 from apps.users.utils import recommendation_creator
 from songs.models import Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
 from users.models import User, UserPreferences, UserSongRating, Friend, FriendRequest, RequestStatus
-from users.utils import getFavoriteGenres, getFavoriteSongs, getFavoriteArtists, getFavoriteMoods, getFavoriteTempos
+from users.utils import get_recommendations, getFavoriteGenres, getFavoriteSongs, getFavoriteArtists, getFavoriteMoods, getFavoriteTempos, available_genre_seeds
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import random
@@ -1139,8 +1139,8 @@ def recommend_you_might_like(request, userid):
             if user_songs.exists() is False:
                 return JsonResponse({'error': 'No songs found for the user, cannot make recommendation'}, status=404)
 
-            client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
-            sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+            # client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+            # sp = spotipy.Spotify(client_credentials_manager=client_credentials)
 
             track_list = []
 
@@ -1150,18 +1150,19 @@ def recommend_you_might_like(request, userid):
             list(set(track_list))
 
             if len(track_list) > 5:
-                track_list =  random.sample(track_list, 5)
+                track_list = random.sample(track_list, 5)
 
             params = {
                 'limit': count,
                 'seed_tracks': track_list
             }
-            spotify_recommendations = sp.recommendations(**params)
+            # spotify_recommendations = sp.recommendations(**params)
+            recommendations = get_recommendations(**params)
 
-            if spotify_recommendations['tracks'] is None:
+            if recommendations['items'] is None:
                 return JsonResponse({'error': 'No recommendations based on track can be made currently, please try again later'}, status=404)
-            tracks_info = recommendation_creator(spotify_recommendations)
-            return JsonResponse({'message': 'Recommendation based on track is successful', 'tracks_info': tracks_info}, status=200)
+            # tracks_info = recommendation_creator(spotify_recommendations)
+            return JsonResponse({'message': 'Recommendation based on track is successful', 'tracks_info': recommendations['items']}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': 'KeyError occurred'}, status=500)
@@ -1264,8 +1265,10 @@ def recommend_since_you_like(request, userid):
 
             if count is None or count < 1 or count > 100:
                 return JsonResponse({'error': 'Wrong parameter'}, status=404)
-            
-            available_seeds = sp.recommendation_genre_seeds()['genres']
+
+            global available_genre_seeds
+            if available_genre_seeds is None:
+                available_genre_seeds = sp.recommendation_genre_seeds()['genres']
 
             ratings = UserSongRating.objects.filter(user=userid).order_by('-rating')[:20]
 
@@ -1277,7 +1280,7 @@ def recommend_since_you_like(request, userid):
                     user_genre_seeds.append(genre.name.lower())
             list(set(user_genre_seeds))
 
-            user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_seeds]
+            user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_genre_seeds]
 
             if len(user_genre_seeds) > 2:
                 user_genre_seeds = random.sample(user_genre_seeds, 2)
@@ -1305,20 +1308,24 @@ def recommend_since_you_like(request, userid):
                     'limit': count,
                     'seed_genres': [genre]
                 }
-                spotify_recommendations = sp.recommendations(**params)
-                if spotify_recommendations['tracks'] is None:
-                    return JsonResponse({'error': 'No recommendations can be made currently, please try again later'}, status=404)
-                results[genre] = recommendation_creator(spotify_recommendations)
-            
-            for artist in artist_list:
+                # spotify_recommendations = sp.recommendations(**params)
+                recommendations = get_recommendations(**params)
+                if recommendations['items'] is None:
+                    return JsonResponse({'error': recommendations['error']}, status=404)
+                # results[genre] = recommendation_creator(spotify_recommendations)
+                results[genre.title()] = recommendations['items']
+
+            for artist_name in artist_list:
                 params = {
                     'limit': count,
-                    'seed_artists': [artist_list[artist]]
+                    'seed_artists': [artist_name]
                 }
-                spotify_recommendations = sp.recommendations(**params)
-                if spotify_recommendations['tracks'] is None:
-                    return JsonResponse({'error': 'No recommendations can be made currently, please try again later'}, status=404)
-                results[artist] = recommendation_creator(spotify_recommendations)
+                # spotify_recommendations = sp.recommendations(**params)
+                recommendations = get_recommendations(**params)
+                if recommendations['items'] is None:
+                    return JsonResponse({'error': recommendations['error']}, status=404)
+                # results[artist] = recommendation_creator(spotify_recommendations)
+                results[artist_name.title()] = recommendations['items']
 
             return JsonResponse({'message': 'Recommendation based on what you listen is successful', 'tracks_info': results}, status=200)
     except KeyError as e:
@@ -1373,14 +1380,15 @@ def recommend_friend_mix(request, userid):
                     'seed_tracks': songs_seed
                 }
 
-                client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
-                sp = spotipy.Spotify(client_credentials_manager=client_credentials)
-                spotify_recommendations = sp.recommendations(**params)
+                # client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+                # sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+                # spotify_recommendations = sp.recommendations(**params)
+                recommendations = get_recommendations(**params)
 
-                if spotify_recommendations['tracks'] is None:
+                if recommendations['items'] is None:
                     return JsonResponse({'error': 'No recommendations based on friends can be made currently, please try again later'}, status=404)
-                tracks_info = recommendation_creator(spotify_recommendations)
-                return JsonResponse({'message': 'Recommendation based on friends is successful', 'tracks_info': tracks_info}, status=200)
+                # tracks_info = recommendation_creator(spotify_recommendations)
+                return JsonResponse({'message': 'Recommendation based on friends is successful', 'tracks_info': recommendations['items']}, status=200)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
     except KeyError as e:

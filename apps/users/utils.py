@@ -1,8 +1,141 @@
 from collections import Counter
+import json
 
-from songs.models import Mood, Tempo
+import math
+import random
+from django.core import serializers
+
+from songs.models import Mood, Tempo, Genre, Song, Artist
 from users.models import User
 
+available_genre_seeds = [
+        "acoustic",
+        "afrobeat",
+        "alt-rock",
+        "alternative",
+        "ambient",
+        "anime",
+        "black-metal",
+        "bluegrass",
+        "blues",
+        "bossanova",
+        "brazil",
+        "breakbeat",
+        "british",
+        "cantopop",
+        "chicago-house",
+        "children",
+        "chill",
+        "classical",
+        "club",
+        "comedy",
+        "country",
+        "dance",
+        "dancehall",
+        "death-metal",
+        "deep-house",
+        "detroit-techno",
+        "disco",
+        "disney",
+        "drum-and-bass",
+        "dub",
+        "dubstep",
+        "edm",
+        "electro",
+        "electronic",
+        "emo",
+        "folk",
+        "forro",
+        "french",
+        "funk",
+        "garage",
+        "german",
+        "gospel",
+        "goth",
+        "grindcore",
+        "groove",
+        "grunge",
+        "guitar",
+        "happy",
+        "hard-rock",
+        "hardcore",
+        "hardstyle",
+        "heavy-metal",
+        "hip-hop",
+        "holidays",
+        "honky-tonk",
+        "house",
+        "idm",
+        "indian",
+        "indie",
+        "indie-pop",
+        "industrial",
+        "iranian",
+        "j-dance",
+        "j-idol",
+        "j-pop",
+        "j-rock",
+        "jazz",
+        "k-pop",
+        "kids",
+        "latin",
+        "latino",
+        "malay",
+        "mandopop",
+        "metal",
+        "metal-misc",
+        "metalcore",
+        "minimal-techno",
+        "movies",
+        "mpb",
+        "new-age",
+        "new-release",
+        "opera",
+        "pagode",
+        "party",
+        "philippines-opm",
+        "piano",
+        "pop",
+        "pop-film",
+        "post-dubstep",
+        "power-pop",
+        "progressive-house",
+        "psych-rock",
+        "punk",
+        "punk-rock",
+        "r-n-b",
+        "rainy-day",
+        "reggae",
+        "reggaeton",
+        "road-trip",
+        "rock",
+        "rock-n-roll",
+        "rockabilly",
+        "romance",
+        "sad",
+        "salsa",
+        "samba",
+        "sertanejo",
+        "show-tunes",
+        "singer-songwriter",
+        "ska",
+        "sleep",
+        "songwriter",
+        "soul",
+        "soundtracks",
+        "spanish",
+        "study",
+        "summer",
+        "swedish",
+        "synth-pop",
+        "tango",
+        "techno",
+        "trance",
+        "trip-hop",
+        "turkish",
+        "work-out",
+        "world-music"
+    ]
 
 def getFavoriteSongs(userid: str, number_of_songs: int):
     if number_of_songs < -1 or number_of_songs == 0:
@@ -132,3 +265,95 @@ def recommendation_creator(spotify_recommendations):
         tracks_info.append(track_info)
     
     return tracks_info
+
+
+def get_recommendations(seed_artists=None,
+                        seed_tracks=None,
+                        seed_genres=None,
+                        limit=10,
+                        lower_limit=0):
+    try:
+        if (seed_artists is None
+                and seed_tracks is None
+                and seed_genres is None):
+            return {"items": None,
+                    "error": "Invalid parameters"}
+
+        valid_seeds = {"seed_artists": seed_artists,
+                       "seed_tracks": seed_tracks,
+                       "seed_genres": seed_genres}
+
+        for key in list(valid_seeds):
+            if valid_seeds[key] is None or len(valid_seeds[key]) == 0:
+                del valid_seeds[key]
+
+        recommendations = []
+        per_type_limit = math.ceil((limit * 1.5) / len(valid_seeds))
+        for key in valid_seeds:
+            if key == "seed_genres":
+                per_genre_limit = math.ceil(per_type_limit / len(valid_seeds[key]))
+                for seed_genre in valid_seeds[key]:
+                    db_genre = Genre.objects.filter(name__iexact=seed_genre).first()
+                    if db_genre is None:
+                        return {"items": None,
+                                "error": f"Invalid genre name: {seed_genre}"}
+                    ids = db_genre.song_set.values_list('id', flat=True)
+                    if len(ids) > per_genre_limit:
+                        ids = random.sample(list(ids), per_genre_limit)
+                    random_songs_genre = Song.objects.filter(id__in=ids)
+                    recommendations.extend(random_songs_genre)
+            elif key == "seed_artists":
+                per_artist_limit = math.ceil(per_type_limit / len(valid_seeds[key]))
+                for seed_artist in valid_seeds[key]:
+                    db_artist = Artist.objects.filter(name__iexact=seed_artist).first()
+                    if db_artist is None:
+                        return {"items": None,
+                                "error": f"Invalid artist name: {seed_artist}"}
+                    artist_genre = db_artist.song_set.first().genres.first()
+                    if artist_genre is None:
+                        continue
+                    ids = artist_genre.song_set.values_list('id', flat=True)
+                    if len(ids) > per_artist_limit:
+                        ids = random.sample(list(ids), per_artist_limit)
+                    random_songs_artist = Song.objects.filter(id__in=ids)
+                    recommendations.extend(random_songs_artist)
+            elif key == "seed_tracks":
+                per_track_limit = math.ceil(per_type_limit / len(valid_seeds[key]))
+                for seed_track in valid_seeds[key]:
+                    db_track = Song.objects.filter(id=seed_track).first()
+                    if db_track is None:
+                        return {"items": None,
+                                "error": f"Invalid track id: {seed_track}"}
+                    track_genre = db_track.genres.first()
+                    if track_genre is None:
+                        continue
+                    ids = track_genre.song_set.values_list('id', flat=True)
+                    if len(ids) > per_track_limit:
+                        ids = random.sample(list(ids), per_track_limit)
+                    random_songs_track = Song.objects.filter(id__in=ids)
+                    recommendations.extend(random_songs_track)
+
+        recommendations = list(set(recommendations))
+
+        if len(recommendations) > limit:
+            recommendations = random.sample(list(recommendations), limit)
+
+        serialized_songs = [
+            {
+                'id': song.id,
+                'name': song.name,
+                'release_year': song.release_year,
+                'main_artist': song.artists.first().name if song.artists.exists() else "Unknown",
+                'img_url': song.img_url
+            }
+            for song in recommendations
+        ]
+
+        if len(serialized_songs) < lower_limit:
+            return {"items": serialized_songs,
+                    "error": "Not enough songs to recommend."}
+
+        return {"items": serialized_songs, "error": None}
+    except Exception as e:
+        return {"items": None,
+                "error": f"Unknown Error: {e}"}
