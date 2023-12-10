@@ -1284,23 +1284,26 @@ def recommend_since_you_like(request, userid):
 
             # user_genre_seeds = [seed for seed in user_genre_seeds if seed in available_genre_seeds]
 
-            if len(user_genre_seeds) < 1:
+            if len(user_genre_seeds) < 2:
                 return JsonResponse({'error': 'No genre found for the user, cannot make recommendation'}, status=404)
             user_genre_seeds = user_genre_seeds[:2]
+
             artist_list = {}
+            artist_list = getFavoriteArtists(userid, number_of_songs=20)
+            artist_list = [name for name, _ in artist_list]
+            # for rating in ratings:
+            #     song = Song.objects.get(id=rating.song.id)
+            #     for artist in song.artists.all():
+            #         artist_list[artist.name] = artist.id
 
-            for rating in ratings:
-                song = Song.objects.get(id=rating.song.id)
-                for artist in song.artists.all():
-                    artist_list[artist.name] = artist.id
+            # if len(artist_list) > 2:
+            #     selected_artists = random.sample(artist_list.items(), 2)
+            #     artist_list = dict(selected_artists)
 
-            if len(artist_list) > 2:
-                selected_artists = random.sample(artist_list.items(), 2)
-                artist_list = dict(selected_artists)
-
-            elif len(artist_list) < 1:
+            if len(artist_list) < 2:
                 return JsonResponse({'error': 'No artist found for the user, cannot make recommendation'}, status=404)
-            
+            artist_list = artist_list[:2]
+
             results = {}
             
             for genre in user_genre_seeds:
