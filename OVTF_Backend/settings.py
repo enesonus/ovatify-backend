@@ -40,6 +40,7 @@ CORS_ALLOW_ALL_ORIGINS = True  # CORS
 INSTALLED_APPS = [
     "songs",
     "users",
+    "drf_spectacular",
     "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -48,6 +49,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # CORS

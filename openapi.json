@@ -1,0 +1,3069 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Ovatify",
+    "description": "Ovatify is a music platform designed to offer a unique and personalized experience to music lovers. This project includes a web application, a mobile application, and a robust backend service to manage streaming, user interactions, and data handling.",
+    "contact": {
+      "email": "eonus@sabanciuniv.edu"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.11"
+  },
+  "servers": [
+    {
+      "url": "https://ovatify-backend-dev.fly.dev/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "User",
+      "description": "Operations related to users"
+    },
+    {
+      "name": "Song",
+      "description": "Operations related to songs"
+    },
+    {
+      "name": "Chart",
+      "description": "Operations related to charts"
+    },
+    {
+      "name": "Recommendation",
+      "description": "Operations related to recommendations"
+    },
+    {
+      "name": "Library",
+      "description": "Operations related to user library"
+    },
+    {
+      "name": "Friend",
+      "description": "Operations related to users and their friends"
+    },
+    {
+      "name": "Import/Export File",
+      "description": "Operations related to exporting and importing files"
+    }
+  ],
+  "paths": {
+    "/songs/search-db/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Search database for songs",
+        "description": "Performs a search in the database based on the provided search string, filtering songs by name, albums, and artists.",
+        "parameters": [
+          {
+            "name": "search_string",
+            "in": "query",
+            "description": "Search string to filter the songs",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Songs found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "songs_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "spotify_id": {
+                            "type": "string"
+                          },
+                          "track_name": {
+                            "type": "string"
+                          },
+                          "release_year": {
+                            "type": "integer"
+                          },
+                          "album_name": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "artist": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "album_url": {
+                            "type": "string",
+                            "format": "url"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameters or Invalid method"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/songs/get-song-by-id/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Retrieve a song by its ID",
+        "description": "Fetches detailed information about a song using its unique ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Song found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "song_info": {
+                      "$ref": "#/components/schemas/Song"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameter or Invalid method"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "Song not found or User not found"
+          }
+        }
+      }
+    },
+    "/songs/add-song/": {
+      "post": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Add a new song to the database",
+        "description": "Creates a new song record in the database using provided Spotify ID and additional data. It also handles the rating for the song.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spotify_id": {
+                    "type": "string",
+                    "description": "Spotify ID of the song"
+                  },
+                  "rating": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "User's rating for the song"
+                  }
+                },
+                "required": [
+                  "spotify_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rating & song added successfully or Rating added successfully"
+          },
+          "201": {
+            "description": "Song added successfully"
+          },
+          "400": {
+            "description": "Invalid method or Missing parameter or Spotify ID is required or You have already added this song, please update your rating via your library"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "User or Song not found"
+          },
+          "500": {
+            "description": "A KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/search-spotify/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Search for songs on Spotify",
+        "description": "Performs a search on Spotify using a provided search string and retrieves a list of matching tracks.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search_string",
+            "in": "query",
+            "description": "The search string to query Spotify tracks",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "track_name": {
+                            "type": "string"
+                          },
+                          "album_name": {
+                            "type": "string"
+                          },
+                          "artist": {
+                            "type": "string"
+                          },
+                          "release_year": {
+                            "type": "string"
+                          },
+                          "spotify_id": {
+                            "type": "string"
+                          },
+                          "album_url": {
+                            "type": "string",
+                            "format": "url"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing search string or Invalid method"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "500": {
+            "description": "KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/get-average-rating/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Get the average rating of a song",
+        "description": "Fetches the average rating for a specific song based on its ID.",
+        "parameters": [
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Average rating retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "average_rating": {
+                      "type": "number",
+                      "format": "float"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing song id"
+          },
+          "404": {
+            "description": "Song not found or No ratings available for this song"
+          },
+          "500": {
+            "description": "KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/get-genres/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Retrieve a list of genres",
+        "description": "Fetches a list of genres, with the option to specify the number of genres to return.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "number_of_genres",
+            "in": "query",
+            "description": "The number of genres to return. Use -1 to return all genres.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of genres retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing number of genres or Invalid number of genres"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "405": {
+            "description": "Invalid method"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/get-songs-by-genre/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Retrieve songs by genre",
+        "description": "Fetches songs filtered by a specific genre, with an option to limit the number of songs returned.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to return. Use -1 to return all songs.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "genre_name",
+            "in": "query",
+            "description": "The name of the genre to filter songs by",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of songs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "release_year": {
+                            "type": "integer"
+                          },
+                          "main_artist": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid number of songs or Missing genre name"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "User does not exist"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/get-song-genres/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Retrieve genres of a specific song",
+        "description": "Fetches genres associated with a specific song, identified by its song ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Genres of the song retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing song id"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "Song not found"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/songs/get-random-genres/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Retrieve a random list of genres",
+        "description": "Fetches a random list of genres, with an option to specify the number of genres to return.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "number_of_genres",
+            "in": "query",
+            "description": "The number of random genres to return. Defaults to 10 if not specified.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Random genres retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of genres"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "User does not exist"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/create-user/": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Create a new user",
+        "description": "Creates a new user account using the provided email address.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          },
+          "400": {
+            "description": "Missing email or user already exists"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/login/": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Log in a user",
+        "description": "Logs in a user and updates their last login time. The user is identified by the provided user ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User logged in successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "405": {
+            "description": "Invalid method"
+          },
+          "500": {
+            "description": "Database error"
+          }
+        }
+      }
+    },
+    "/users/user-songs/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Retrieve songs rated by the user",
+        "description": "Fetches a list of songs that the user has rated, identified by the user's ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user-rated songs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "release_year": {
+                            "type": "integer"
+                          },
+                          "duration": {
+                            "type": "number",
+                            "format": "float"
+                          },
+                          "tempo": {
+                            "type": "string"
+                          },
+                          "mood": {
+                            "type": "string"
+                          },
+                          "recorded_environment": {
+                            "type": "string"
+                          },
+                          "replay_count": {
+                            "type": "integer"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No song found"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/add-song-rating/": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Add a rating to a song",
+        "description": "Allows a user to rate a song by specifying the song ID and the rating value.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "song_id": {
+                    "type": "string",
+                    "description": "The unique identifier of the song to be rated"
+                  },
+                  "rating": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The rating value for the song"
+                  }
+                },
+                "required": [
+                  "song_id",
+                  "rating"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User rating added successfully"
+          },
+          "400": {
+            "description": "Missing parameter or User rating already exists or Invalid data format"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "User not found or Song not found or Integrity Error: Invalid user or song reference"
+          },
+          "500": {
+            "description": "KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/edit-song-rating/": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Edit a user's rating for a song",
+        "description": "Allows a user to update their rating for a specific song.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "song_id": {
+                    "type": "string",
+                    "description": "The unique identifier of the song whose rating is to be updated"
+                  },
+                  "rating": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The new rating value for the song"
+                  }
+                },
+                "required": [
+                  "song_id",
+                  "rating"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User rating updated successfully"
+          },
+          "400": {
+            "description": "Missing parameter or Invalid method"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "404": {
+            "description": "User not found or Song not found or User rating not found"
+          },
+          "500": {
+            "description": "KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/delete-song-rating/": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Delete a user's rating for a song",
+        "description": "Allows a user to delete their rating for a specific song.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song whose rating is to be deleted",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User rating deleted successfully"
+          },
+          "400": {
+            "description": "Missing parameter or Invalid method"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication token is missing or invalid"
+          },
+          "500": {
+            "description": "KeyError occurred or An unexpected error occurred"
+          }
+        }
+      }
+    },
+    "/users/get-songs-by-genre/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get songs by a specific genre for a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to retrieve (default: 10).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "genre_name",
+            "in": "query",
+            "description": "The name of the genre to filter songs by.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of matching songs."
+          },
+          "400": {
+            "description": "Invalid number of songs or missing genre name."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-songs-by-artist/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get songs by a specific artist for a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to retrieve (default: 10).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "artist_name",
+            "in": "query",
+            "description": "The name of the artist to filter songs by.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of matching songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Song"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs or missing artist name."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-songs-by-tempo/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get songs by a specific tempo for a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to retrieve (default: 10).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "tempo_name",
+            "in": "query",
+            "description": "The name of the tempo to filter songs by, based on the Tempo enum.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Slow",
+                "Medium",
+                "Fast"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of matching songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Song"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs or missing tempo name."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-songs-by-mood/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get songs by a specific mood for a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to retrieve (default: 10).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "mood_name",
+            "in": "query",
+            "description": "The name of the mood to filter songs by, based on the Mood enum.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Happy",
+                "Sad",
+                "Excited",
+                "Relaxed"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of matching songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Song"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs or missing mood name."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-recently-added-songs/": {
+      "get": {
+        "tags": [
+          "User",
+          "Library"
+        ],
+        "summary": "Get a list of songs recently added by a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of recently added songs to retrieve. If not specified, all recently added songs will be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of recently added songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "release_year": {
+                            "type": "integer",
+                            "format": "int32",
+                            "nullable": true
+                          },
+                          "main_artist": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "maxLength": 300,
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-favorite-songs/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get a list of favorite songs for a user.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of favorite songs to retrieve. If not specified, all favorite songs will be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of favorite songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "release_year": {
+                            "type": "integer",
+                            "format": "int32",
+                            "nullable": true
+                          },
+                          "main_artist": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "maxLength": 300,
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-favorite-genres/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get a list of favorite genres for a user based on their song ratings.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining favorite genres. If not specified, all rated songs will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of favorite genres.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Pop": 5,
+                    "Rock": 3,
+                    "Jazz": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-favorite-artists/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get a list of favorite artists for a user based on their song ratings.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining favorite artists. If not specified, all rated songs will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of favorite artists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Semicenk": 5,
+                    "Ceza": 3,
+                    "Adele": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-favorite-moods/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get a list of favorite moods for a user based on their song ratings.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining favorite moods. If not specified, all rated songs will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of favorite moods.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Happy": 5,
+                    "Sad": 3,
+                    "Excited": 2,
+                    "Relaxed": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-favorite-tempo/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get a list of favorite tempos for a user based on their song ratings.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining favorite tempos. If not specified, all rated songs will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of favorite tempos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Slow": 4,
+                    "Moderate": 6,
+                    "Fast": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-all-recent/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation"
+        ],
+        "summary": "Get a list of the most recently added songs.",
+        "parameters": [
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of recent songs to retrieve (default: 10).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of recent songs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "songs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "release_year": {
+                            "type": "integer",
+                            "format": "int32",
+                            "nullable": true
+                          },
+                          "main_artist": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "maxLength": 300,
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid number of songs."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/send-friend-request/": {
+      "post": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Send a friend request to another user.",
+        "requestBody": {
+          "description": "Data needed to send a friend request.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the receiver of the friend request."
+                  }
+                },
+                "required": [
+                  "username"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Friend request sent successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameter, user is already a friend, cannot send a request to oneself, or there is already a pending request."
+          },
+          "404": {
+            "description": "User or receiver not found."
+          },
+          "409": {
+            "description": "Conflict with an existing pending friend request."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-all-incoming-requests/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Retrieve all incoming friend requests for the user.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of incoming friend requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error or database error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-incoming-request-count/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Get the count of incoming friend requests for the user.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of the count of incoming friend requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "description": "The number of incoming friend requests."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error or database error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/cancel-friend-request/": {
+      "post": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Cancel an outgoing friend request to another user.",
+        "requestBody": {
+          "description": "Data needed to cancel a friend request.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the receiver of the friend request to be canceled."
+                  }
+                },
+                "required": [
+                  "username"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Friend request canceled successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameter or invalid request."
+          },
+          "404": {
+            "description": "Receiver user not found or no pending request exists."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-all-friends/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Retrieve all friends of the user.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of all friends.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "friends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error or database error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/edit-user-preferences/": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Edit the preferences of a user.",
+        "requestBody": {
+          "description": "Data for updating user preferences.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "New username of the user.",
+                    "minLength": 6,
+                    "maxLength": 16
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "New email of the user."
+                  },
+                  "img_url": {
+                    "type": "string",
+                    "format": "url",
+                    "description": "New image URL for the user's profile."
+                  },
+                  "data_processing_consent": {
+                    "type": "boolean",
+                    "description": "Consent for data processing."
+                  },
+                  "data_sharing_consent": {
+                    "type": "boolean",
+                    "description": "Consent for data sharing."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Preferences updated successfully."
+          },
+          "400": {
+            "description": "Invalid request data or no fields provided for update."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "405": {
+            "description": "Invalid request method."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/recommend-you-might-like/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation"
+        ],
+        "summary": "Get music recommendations for the user.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "The number of recommendations to retrieve (between 1 and 100).",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of recommendations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tracks_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "songs": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Song"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or wrong parameter."
+          },
+          "404": {
+            "description": "No songs found for the user or no recommendations can be made."
+          },
+          "500": {
+            "description": "KeyError occurred or an unexpected error occurred."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-user-profile/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Retrieve the profile information of a user.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of user profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "img_url": {
+                      "type": "string",
+                      "format": "url",
+                      "nullable": true
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "data_processing": {
+                          "type": "boolean"
+                        },
+                        "data_sharing": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "405": {
+            "description": "Method not allowed."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-recent-addition-counts/": {
+      "get": {
+        "tags": [
+          "User",
+          "Chart"
+        ],
+        "summary": "Get the count of songs added by the user over the last five days.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of song addition counts per day.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "song_counts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": "The date in 'dd-mm' format."
+                          },
+                          "count": {
+                            "type": "integer",
+                            "description": "The number of songs added on this date."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User does not exist."
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-profile-stats/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get statistical data about the user's profile.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of profile statistics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rated_count": {
+                      "type": "integer",
+                      "description": "The total number of songs rated by the user."
+                    },
+                    "friend_count": {
+                      "type": "integer",
+                      "description": "The number of friends the user has."
+                    },
+                    "rating_average": {
+                      "type": "number",
+                      "format": "float",
+                      "description": "The average rating given by the user."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User does not exist."
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/recommend-since-you-like/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation"
+        ],
+        "summary": "Get personalized music recommendations based on user's favorite genres and artists.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "The number of recommendations to retrieve (between 1 and 100).",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of recommendations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tracks_info": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "songs": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Song"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or wrong parameter."
+          },
+          "404": {
+            "description": "No genre or artist found for the user, or no recommendations can be made."
+          },
+          "500": {
+            "description": "KeyError occurred or an unexpected error occurred."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/recommend-friend-mix/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation"
+        ],
+        "summary": "Get music recommendations based on the preferences of the user's friends.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "The number of recommendations to retrieve (between 1 and 100).",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of recommendations based on friends' preferences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tracks_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or invalid count."
+          },
+          "404": {
+            "description": "No friends found for the user, no songs found for friends, or no recommendations can be made."
+          },
+          "500": {
+            "description": "KeyError occurred, user not found, or an unexpected error occurred."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/recommend-friend-listen/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation"
+        ],
+        "summary": "Get song recommendations based on what the user's friends are listening to.",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "The number of song recommendations to retrieve. Must be a positive number.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of recommendations based on friends' listening habits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tracks_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "main_artist": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "release_year": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or invalid count."
+          },
+          "404": {
+            "description": "No friends or songs found for the user."
+          },
+          "500": {
+            "description": "KeyError occurred or an unexpected error occurred."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/export-by-genre/": {
+      "get": {
+        "tags": [
+          "User",
+          "Import/Export File"
+        ],
+        "summary": "Export song data filtered by a specific genre for the user.",
+        "parameters": [
+          {
+            "name": "genre",
+            "in": "query",
+            "description": "The genre to filter songs by.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval and export of songs data filtered by the specified genre.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing filter, invalid input, or file operation error."
+          },
+          "404": {
+            "description": "User, genre, or artist does not exist."
+          },
+          "500": {
+            "description": "Internal server error or file operation error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/export-by-artist/": {
+      "get": {
+        "tags": [
+          "User",
+          "Import/Export File"
+        ],
+        "summary": "Export song data filtered by a specific artist for the user.",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "description": "The artist to filter songs by.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval and export of songs data filtered by the specified artist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing filter or invalid input."
+          },
+          "404": {
+            "description": "User, genre, or artist does not exist."
+          },
+          "500": {
+            "description": "Internal server error or file operation error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-library-artist-names/": {
+      "get": {
+        "tags": [
+          "User",
+          "Import/Export File"
+        ],
+        "summary": "Retrieve a list of artist names from the user's song library.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of artist names from the user's library.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "artists": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No artist is found for the user or the user does not exist."
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-library-genre-names/": {
+      "get": {
+        "tags": [
+          "User",
+          "Import/Export File"
+        ],
+        "summary": "Retrieve a list of genre names from the user's song library.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of genre names from the user's library.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No genre is found for the user or the user does not exist."
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/upload-file/": {
+      "post": {
+        "tags": [
+          "User",
+          "Import/Export File"
+        ],
+        "summary": "Import song data for the user from a JSON file.",
+        "requestBody": {
+          "description": "JSON file containing song data to be imported.",
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The JSON file containing song data."
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Song data imported successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "message": {
+                            "type": "string"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided or missing required fields in the file."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Unexpected error occurred during file processing."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 150,
+            "uniqueItems": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "uniqueItems": true
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "date_joined": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_login": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_preferences": {
+            "$ref": "#/components/schemas/UserPreferences"
+          },
+          "friends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "UserPreferences": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "data_processing_consent": {
+            "type": "boolean",
+            "default": true
+          },
+          "data_sharing_consent": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "Friend": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "friend": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "uniqueItems": true
+      },
+      "FriendGroup": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "friends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "FriendRequest": {
+        "type": "object",
+        "properties": {
+          "sender": {
+            "$ref": "#/components/schemas/User"
+          },
+          "receiver": {
+            "$ref": "#/components/schemas/User"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "A",
+              "R",
+              "P"
+            ],
+            "default": "P",
+            "description": "Friend request status: Accepted (A), Rejected (R), Pending (P)"
+          }
+        },
+        "uniqueItems": true
+      },
+      "Song": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Genre"
+            }
+          },
+          "artists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Artist"
+            }
+          },
+          "albums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Album"
+            }
+          },
+          "instruments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Instrument"
+            }
+          },
+          "release_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "format": "duration"
+          },
+          "tempo": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "F"
+            ]
+          },
+          "mood": {
+            "type": "string",
+            "enum": [
+              "H",
+              "SA",
+              "E",
+              "R"
+            ]
+          },
+          "recorded_environment": {
+            "type": "string",
+            "enum": [
+              "I",
+              "O",
+              "S",
+              "L"
+            ]
+          },
+          "replay_count": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 50,
+            "nullable": true
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          }
+        }
+      },
+      "UserSongRating": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "song": {
+            "$ref": "#/components/schemas/Song"
+          },
+          "rating": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
+      "Genre": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          }
+        }
+      },
+      "GenreSong": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "$ref": "#/components/schemas/Genre"
+          },
+          "song": {
+            "$ref": "#/components/schemas/Song"
+          }
+        },
+        "uniqueItems": true
+      },
+      "Album": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "release_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          }
+        }
+      },
+      "AlbumSong": {
+        "type": "object",
+        "properties": {
+          "album": {
+            "$ref": "#/components/schemas/Album"
+          },
+          "song": {
+            "$ref": "#/components/schemas/Song"
+          }
+        },
+        "uniqueItems": true
+      },
+      "Artist": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "bio": {
+            "type": "string"
+          },
+          "img_url": {
+            "type": "string",
+            "format": "url",
+            "maxLength": 300,
+            "nullable": true
+          }
+        }
+      },
+      "ArtistSong": {
+        "type": "object",
+        "properties": {
+          "song": {
+            "$ref": "#/components/schemas/Song"
+          },
+          "artist": {
+            "$ref": "#/components/schemas/Artist"
+          }
+        },
+        "uniqueItems": true
+      },
+      "Instrument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          }
+        }
+      },
+      "InstrumentSong": {
+        "type": "object",
+        "properties": {
+          "instrument": {
+            "$ref": "#/components/schemas/Instrument"
+          },
+          "song": {
+            "$ref": "#/components/schemas/Song"
+          }
+        },
+        "uniqueItems": true
+      }
+    },
+    "requestBodies": {
+      "Pet": {
+        "description": "Pet object that needs to be added to the store",
+        "content": {
+          "application/json": {},
+          "application/xml": {}
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
