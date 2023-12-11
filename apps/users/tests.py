@@ -1,5 +1,6 @@
 import json
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from songs.models import (Song, Tempo,
                           Mood, RecordedEnvironment,
@@ -173,72 +174,89 @@ class UserSongRatingModelTest(TestCase):
                                                        song=UserSongRatingModelTest.song1).exists())
 
 
-class UserApiTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.client = Client()
-        cls.client.defaults['AUTHORIZATION'] = 'Bearer e5e28a48-8080-11ee-b962-0242ac120002'
-        # Setup initial data for the models
-        cls.user1 = User.objects.create(id="first", username='testuser1',
-                                        email='test1@example.com',
-                                        last_login=timezone.now())
-        cls.user2 = User.objects.create(id="second", username='testuser2',
-                                        email='test2@example.com',
-                                        last_login=timezone.now())
-        cls.song1 = Song.objects.create(id="song1",
-                                        name="Fark Ettim",
-                                        tempo=Tempo.MEDIUM,
-                                        mood=Mood.HAPPY,
-                                        recorded_environment=RecordedEnvironment.STUDIO,
-                                        release_year=2020,
-                                        )
-        cls.song2 = Song.objects.create(id="song2",
-                                        name="Canima minnet",
-                                        tempo=Tempo.MEDIUM,
-                                        mood=Mood.HAPPY,
-                                        recorded_environment=RecordedEnvironment.STUDIO,
-                                        release_year=2020,
-                                        )
+# class UserApiTest(TestCase):
+#     @classmethod
+#     def setUpTestData(cls):
+#         cls.headers={"authorization": "Bearer e5e28a48-8080-11ee-b962-0242ac120002"}
+#         cls.client = Client()
+        
+#         # cls.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+#         # Setup initial data for the models
+#         cls.user1 = User.objects.create(id="first", username='testuser1',
+#                                         email='test1@example.com',
+#                                         last_login=timezone.now())
+#         cls.user2 = User.objects.create(id="second", username='testuser2',
+#                                         email='test2@example.com',
+#                                         last_login=timezone.now())
+#         cls.song1 = Song.objects.create(id="song1",
+#                                         name="Fark Ettim",
+#                                         tempo=Tempo.MEDIUM,
+#                                         mood=Mood.HAPPY,
+#                                         duration=timezone.timedelta(seconds=100),
+#                                         recorded_environment=RecordedEnvironment.STUDIO,
+#                                         release_year=2020,
+#                                         )
+#         cls.song2 = Song.objects.create(id="song2",
+#                                         name="Canima minnet",
+#                                         tempo=Tempo.MEDIUM,
+#                                         mood=Mood.HAPPY,
+#                                         duration=timezone.timedelta(seconds=100),
+#                                         recorded_environment=RecordedEnvironment.STUDIO,
+#                                         release_year=2020,
+#                                         )
 
-    # path('user-preferences/', view=views.user_preferences_create, name='user_preferences_create'),
-    # path('user-songs/', view=views.user_songs_view, name='user-songs-view'),
-    # path('hello-github/', view=views.hello_github, name='hello-github'),
-    # path('add-song-rating/', view=views.add_song_rating, name='add-song-rating'),
-    # path('remove-friend/', view=views.remove_friend, name = 'remove-friend'),
-    # path('add-friend/', view=views.add_friend, name='add_friend'),
-    # path('edit-song-rating/', view=views.edit_song_rating, name='edit-song-rating'),
-    # path('delete-song-rating/', view=views.delete_song_rating, name='delete-song-rating'),
-    # path('get-songs-by-genre/', view=views.user_songs_with_genre, name='get-songs-genre'),
-    # path('get-songs-by-tempo/', view=views.user_songs_with_tempo, name='get-songs-tempo'),
-    # path('get-songs-by-artist/', view=views.user_songs_with_artist, name='get-songs-artist'),
-    # path('get-songs-by-mood/', view=views.user_songs_with_mood, name='get-songs-mood'),
-    # path('get-recently-added-songs/', view=views.get_recently_added_songs, name='get-recently-added-songs'),
-    # path('get-favorite-songs/', view=views.get_favorite_songs, name='get-favorite-songs'),
-    # path('get-favorite-genres/', view=views.get_favorite_genres, name='get-favorite-genres'),
-    # path('get-favorite-artists/', view=views.get_favorite_artists, name='get-favorite-artists'),
-    # path('get-favorite-moods/', view=views.get_favorite_moods, name='get-favorite-moods'),
-    # path('get-favorite-tempos/', view=views.get_favorite_tempos, name='get-favorite-tempo'),
-    # path('get-all-recent/', view=views.get_all_recent_songs, name='get-all-recent'),
-    # path('send-friend-request/', view=views.send_friend_request, name='send-friend-request'),
-    # path('get-all-incoming-requests/', view=views.get_all_incoming_requests, name='get-all-incoming-requests'),
-    # path('accept-friend-request/', view=views.accept_friend_request, name='accept-friend-request'),
-    # path('reject-friend-request/', view=views.reject_friend_request, name='reject-friend-request'),
-    # path('get-all-outgoing-requests/', view=views.get_all_outgoing_requests, name='get-all-outgoing-requests'),
-    # path('get-incoming-request-count/', view=views.get_incoming_requests_count, name='get-incoming-count'),
-    # path('cancel-friend-request/', view=views.cancel_friend_request, name='cancel-friend-request'),
-    # path('get-all-friends/', view=views.get_all_friends, name='get-all-friends'),
-    # path('get-all-global-requests/', view=views.get_all_global_requests, name='get-all-requests'),
-    # path('delete-request/', view=views.delete_request, name='delete-request'),
-    # path('edit-user-preferences/', view = views.edit_user_preferences, name= 'edit_user_preferences'),
-    # path('recommend-you-might-like/', view = views.recommend_you_might_like, name='recommend-you-might-like'),
-    # path('get-user-profile/', view = views.get_user_profile, name= 'get-user-profile'),
-    # path('get-recent-addition-counts/', view=views.get_recent_addition_by_count, name='get-recent-addition-count'),
-    # path('get-profile-stats/', view=views.get_profile_stats, name='get-profile-stats'),
-    # path('recommend-since-you-like/', view=views.recommend_since_you_like, name='recommend-since-you-like'),
-    # path('recommend-friend-mix/', view=views.recommend_friend_mix, name='recommend-friend-mix'),
-    # path('recommend-friend-listen/', view=views.recommend_friend_listen, name='recommend-friend-listen'),
-    # path('export-by-genre/', views.export_by_genre, name='export-by-genre'),
-    # path('export-by-artist/', views.export_by_artist, name='export-by-artist'),
-    # path('get-library-artist-names/', views.get_library_artist_names, name='get-library-artist-names'),
-    # path('get-library-genre-names/', views.get_library_genre_names, name='get-library-genre-names'),
-    # path('upload-file/', views.import_song_JSON, name='import-song-json'),
+#     def test_get_songs_by_tempo(self):
+#         self.song1.tempo = Tempo.FAST
+#         self.song1.save()
+#         self.song2.tempo = Tempo.FAST
+#         self.song2.save()
+
+#         response = self.client.get(reverse('get-songs-tempo'), {'userid': self.user1.id, 'tempo_name': 'Fast'},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())
+
+#     def test_get_songs_by_genre(self):
+#         genre = Genre.objects.create(name="Rock")
+#         GenreSong.objects.create(song=self.song1, genre=genre)
+#         GenreSong.objects.create(song=self.song2, genre=genre)
+
+#         response = self.client.get(reverse('get-songs-genre'), {'genre_name': 'Rock'},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())
+
+#     def test_get_songs_by_artist(self):
+#         artist = Artist.objects.create(name="Artist1")
+#         ArtistSong.objects.create(song=self.song1, artist=artist)
+#         ArtistSong.objects.create(song=self.song2, artist=artist)
+
+#         response = self.client.get(reverse('get-songs-artist'), {'userid': self.user1.id, 'artist_name': 'Artist1'},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())
+
+#     def test_get_songs_by_mood(self):
+#         self.song1.mood = Mood.HAPPY
+#         self.song1.save()
+#         self.song2.mood = Mood.HAPPY
+#         self.song2.save()
+
+#         response = self.client.get(reverse('get-songs-mood'), {'userid': self.user1.id, 'mood_name': 'Happy'},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())
+
+#     def test_get_recently_added_songs(self):
+#         # Assuming songs are already created and rated in setUp
+#         response = self.client.get(reverse('get-recently-added-songs'), {'userid': self.user1.id},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())
+
+#     def test_get_favorite_songs(self):
+#         # Assuming songs are already created and rated in setUp
+#         response = self.client.get(reverse('get-favorite-songs'), {'userid': self.user1.id},
+#                                    headers=self.headers)
+#         self.assertEqual(response.status_code, 200)
+#         self.assertIn('songs', response.json())

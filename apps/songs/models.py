@@ -29,7 +29,8 @@ class RecordedEnvironment(models.TextChoices):
 # Models
 class Genre(CoreModel):
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100)
+    name = models.CharField(unique=True,
+                            max_length=100)
     img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
@@ -78,7 +79,7 @@ class Album(CoreModel):
     img_url = models.URLField(max_length=300, blank=True, null=True)
 
     def __str__(self):
-        return str(self.title)
+        return str(self.name)
 
 
 class Instrument(CoreModel):
