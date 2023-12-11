@@ -284,7 +284,7 @@ def get_recommendations(seed_artists=None,
                        "seed_genres": seed_genres}
 
         for key in list(valid_seeds):
-            if valid_seeds[key] is None or len(valid_seeds[key]) == 0:
+            if valid_seeds[key] is None:
                 del valid_seeds[key]
 
         recommendations = []
@@ -318,7 +318,16 @@ def get_recommendations(seed_artists=None,
                     random_songs_artist = Song.objects.filter(id__in=ids)
                     recommendations.extend(random_songs_artist)
             elif key == "seed_tracks":
-                per_track_limit = math.ceil(per_type_limit / len(valid_seeds[key]))
+                if len(valid_seeds[key]) == 0:
+                    per_track_limit = math.ceil(per_type_limit / len(valid_seeds))
+                else:
+                    per_track_limit = math.ceil(per_type_limit / len(valid_seeds[key]))
+
+                if len(valid_seeds[key]) == 0:
+                    song_ids = Song.objects.all().values_list('id', flat=True)
+                    random_ids = random.sample(list(song_ids), per_track_limit)
+                    random_songs = Song.objects.filter(id__in=random_ids)
+                    recommendations.extend(random_songs)
                 for seed_track in valid_seeds[key]:
                     db_track = Song.objects.filter(id=seed_track).first()
                     if db_track is None:
