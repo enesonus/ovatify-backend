@@ -1593,6 +1593,106 @@ def export_by_artist(request, userid):
 
 @csrf_exempt
 @token_required
+def import_song_JSON(request, userid):
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+    try:
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            data = json.load(file)
+        else:
+            return JsonResponse({'error': 'No file provided'}, status=400)
+        if isinstance(data, dict):
+            data = [data]
+        required_fields = ['name', 'rating']
+        return_data = []
+        for song_data in data:
+            if not all(field in song_data for field in required_fields):
+                return_data.append({'error': 'Missing required fields'})
+                continue
+            rating = float(song_data.get('rating'))
+            song_name = song_data.get('name')
+            song_name = song_name.title()
+            try:
+                user = User.objects.get(id=userid)
+            except User.DoesNotExist:
+                return_data.append({"error": f"User with id {userid} not found"})
+                continue
+
+            try:
+                song = Song.objects.get(name=song_name)
+            except Song.DoesNotExist:
+                return_data.append({'error': f'{song_name} does not exist in database, please add it manually'})
+                continue
+
+            if rating > 0 and rating <= 5:
+                existing_rating = UserSongRating.objects.filter(user=user, song=song)
+                if len(existing_rating) == 0:
+                    UserSongRating.objects.create(user=user, song=song, rating=rating)
+                    return_data.append({'message': f'Rating of {rating} is added to {song_name} successfully'})
+                    continue
+                else:
+                    return_data.append({'error': f'You have already rated {song_name}, please update your rating via your library'})
+                    continue
+            # recorded_environment = song_data.get('recorded_environment', None)
+            # replay_count = song_data.get('replay_count', None)
+            # img_url = song_data.get('img_url', None)
+            # genre_names = song_data.get('genres', None)
+            # artist_names = song_data.get('artists', None)
+            # album_names = song_data.get('albums', None)
+            # instrument_names = song_data.get('instruments', None)
+            # genres, artists, albums, instruments = [], [], [], []
+
+            # if img_url:
+            #     song_data['img_url'] = img_url
+            # if recorded_environment:
+            #     song_data['recorded_environment'] = recorded_environment
+            # if replay_count:
+            #     song_data['replay_count'] = int(replay_count)
+            # if genre_names:
+            #     existing_genres, new_genres = bulk_get_or_create(Genre, genre_names, 'name')
+            #     genres.extend(existing_genres)
+            #     genres.extend(new_genres)
+            #     song_data.pop('genres', None)
+
+            # if artist_names:
+            #     existing_artists, new_artists = bulk_get_or_create(Artist, artist_names, 'name')
+            #     artists.extend(existing_artists)
+            #     artists.extend(new_artists)
+            #     song_data.pop('artists', None)
+
+            # if album_names:
+            #     for album_name in album_names:
+            #         album, created = Album.objects.get_or_create(name=album_name, release_year=song_data['release_year'])
+            #         albums.append(album)
+            #     song_data.pop('albums', None)
+
+            # if instrument_names:
+            #     existing_instruments, new_instruments = bulk_get_or_create(Instrument, instrument_names, 'name')
+            #     instruments.extend(existing_instruments)
+            #     instruments.extend(new_instruments)
+            #     song_data.pop('instruments', None)
+
+            # hours, minutes, seconds = map(int, song_data['duration'].split(':'))
+            # duration_timedelta = timedelta(hours=hours, minutes=minutes, seconds=seconds)
+            # song_data['duration'] = duration_timedelta
+
+            # song = Song(**song_data)
+            # song.save()
+
+            # song.genres.set(genres)
+            # song.artists.set(artists)
+            # song.albums.set(albums)
+            # song.instruments.set(instruments)
+
+        return JsonResponse({"items": return_data}, status=201)
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+        return JsonResponse({"error": f"Unexpected error: {e}", "return_data": return_data}, status=500)
+
+
+@csrf_exempt
+@token_required
 def get_library_artist_names(request, userid):
     if request.method != 'GET':
         return HttpResponse(status=405)

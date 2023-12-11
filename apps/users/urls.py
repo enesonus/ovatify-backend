@@ -50,4 +50,5 @@ urlpatterns = [
     path('export-by-artist/', views.export_by_artist, name='export-by-artist'),
     path('get-library-artist-names/', views.get_library_artist_names, name='get-library-artist-names'),
     path('get-library-genre-names/', views.get_library_genre_names, name='get-library-genre-names'),
+    path('upload-file/', views.import_song_JSON, name='import-song-json'),
 ]
