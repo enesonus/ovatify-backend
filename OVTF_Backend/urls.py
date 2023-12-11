@@ -19,10 +19,16 @@ from django.urls import include, path
 
 from OVTF_Backend import views
 
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health_check/", views.health_check, name="health_check"),
     path("", views.health_check, name="health_check"),
     path("users/", include("users.urls")),
     path("songs/", include("songs.urls")),
+    path('api/docs/',
+         SpectacularSwaggerView.as_view(url_name='api-schema'),
+         name='swagger-ui'),
+    path('api/schema/', views.custom_openapi, name='api-schema'),
 ]

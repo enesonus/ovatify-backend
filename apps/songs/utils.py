@@ -1,9 +1,23 @@
+import time
 from typing import Tuple, List
 from django.db.models import Model
 import requests
 from bs4 import BeautifulSoup
 import os
-from songs.models import Album, Genre, Instrument, Song, Artist
+import spotipy
+
+from songs.models import (Album, Artist,
+                          Genre, Mood,
+                          RecordedEnvironment,
+                          Song, Tempo,
+                          Instrument)
+
+from spotipy.oauth2 import SpotifyClientCredentials
+
+from datetime import timedelta
+
+from django.http import JsonResponse
+
 
 
 def bulk_get_or_create(model: Model, data: List, unique_field: str) -> Tuple[List[Model], List[Model]]:
@@ -119,3 +133,101 @@ def getFirstRelatedSong(genre_id):
     genre_song = genre.genresong_set.order_by('-created_at').first()
     return genre_song.song.img_url
 
+
+def add_song_helper(track=None):
+    client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+    sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+
+    if track is None:
+        return {'error': 'Song not found'}
+    else:
+        audio_features = sp.audio_features([track['id']])
+        genres, artist_img = get_genres_and_artist_info(track, sp)
+
+        if audio_features is None:
+            return {'error': 'No audio features found for the song'}
+        else:
+            audio_features = audio_features[0]
+            recorded_environment = RecordedEnvironment.LIVE if audio_features['liveness'] >= 0.8 else RecordedEnvironment.STUDIO
+            tempo = Tempo.FAST if audio_features['tempo'] >= 120 else (Tempo.MEDIUM if 76 <= audio_features['tempo'] < 120 else Tempo.SLOW)
+            energy = audio_features['energy']
+            if 0 <= energy < 0.25:
+                mood = Mood.SAD
+            elif 0.25 <= energy < 0.5:
+                mood = Mood.RELAXED
+            elif 0.5 <= energy < 0.75:
+                mood = Mood.HAPPY
+            else:
+                mood = Mood.EXCITED
+            # Create necessary objects in the database
+            new_song, created = Song.objects.get_or_create(
+                id=track['id'],
+                name=track['name'].title(),
+                release_year=track['album']['release_date'][:4],
+                tempo=tempo,
+                duration=str(timedelta(seconds=int(track['duration_ms']/1000))),
+                recorded_environment=recorded_environment,
+                mood=mood,
+                img_url=track['album']['images'][0]['url'],
+                version=track['album']['release_date'],
+            )
+            if created:
+                for genre_name in genres:
+                    if genre_name:
+                        genre, genre_created = Genre.objects.get_or_create(name=genre_name)
+                        new_song.genres.add(genre)
+                
+                for artist in track['artists']:
+                    artist_name = artist['name'].title()
+                    artist_bio = get_artist_bio(artist_name)
+                    artist_img_url = artist_img if artist_img is not None else None
+
+                    db_artist = Artist.objects.filter(id=artist['id']).first()
+                    if db_artist is None:
+                        artist = Artist.objects.create(
+                                        id=artist['id'],
+                                        name=artist_name.title(),
+                                        img_url=artist_img_url,
+                                        bio=artist_bio)
+                        db_artist = artist
+                    if (db_artist.bio != artist_bio or
+                            db_artist.img_url != artist_img_url):
+                        db_artist.bio = artist_bio
+                        db_artist.img_url = artist_img_url
+                        db_artist.save()
+                    new_song.artists.add(db_artist)
+
+                album_name = track['album']['name'].title() if 'album' in track and 'name' in track['album'] else track['name'].title() + ' - Single'
+                album_instance, album_created = Album.objects.get_or_create(id= track['album']['id'],
+                                                                            name=album_name,
+                                                                            release_year=track['album']['release_date'][:4],
+                                                                            img_url=track['album']['images'][0]['url'])
+                new_song.albums.add(album_instance)
+            else:
+                if created:
+                    return {'message': 'Song added successfully'}
+                else:
+                    return {'error': "You have already added this song"}
+
+
+def addSongPerArtistFromSpotify():
+
+    client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
+    sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+
+    # Use the provided Spotify ID to get track information directly
+    all_artists = Artist.objects.all()
+    for artist in all_artists:
+        print(f"----------------------\nArtist: {artist.name}")
+        top_tracks = sp.artist_top_tracks(artist_id=artist.id,
+                                          country='TR')
+        for track in top_tracks['tracks']:
+            return_data = add_song_helper(track=track)
+
+            if return_data is None:
+                print("error: return_data is None")
+                continue
+            if return_data.get("error") is not None:
+                print(f"error: {return_data['error']}")
+        time.sleep(3)
+    return JsonResponse({'message': 'Songs added successfully'}, status=201)
