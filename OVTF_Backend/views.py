@@ -10,6 +10,6 @@ def health_check(request):
     return JsonResponse(context, status=200)
 
 def custom_openapi(request):
-    with open('/Users/enes.onus/Desktop/Personal/ovatify/ovatify-backend/openapi.json', 'r') as file:
+    with open('openapi.json', 'r') as file:
         data = json.load(file)
         return JsonResponse(data)
