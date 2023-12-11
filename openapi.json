@@ -14,6 +14,10 @@
   },
   "servers": [
     {
+      "url": "https://ovatify-backend.fly.dev/"
+    },
+
+    {
       "url": "https://ovatify-backend-dev.fly.dev/"
     }
   ],
