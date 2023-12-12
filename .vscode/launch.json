@@ -36,6 +36,7 @@
             "name": "Django: Shell",
             "type": "python",
             "request": "launch",
+            "justMyCode": false,
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "shell"
