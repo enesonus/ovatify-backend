@@ -31,7 +31,7 @@ class Genre(CoreModel):
     id = models.AutoField(primary_key=True)
     name = models.CharField(unique=True,
                             max_length=100)
-    img_url = models.URLField(max_length=300, blank=True, null=True)
+    img_url = models.URLField(max_length=1000, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
@@ -56,27 +56,27 @@ class Song(CoreModel):
     replay_count = models.PositiveIntegerField(default=0)
     version = models.CharField(max_length=50,
                                blank=True, null=True,)
-    img_url = models.URLField(max_length=300, blank=True, null=True)
+    img_url = models.URLField(max_length=1000, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
 
 
 class Artist(CoreModel):
-    id = models.CharField(max_length=300,primary_key=True)
+    id = models.CharField(max_length=1000,primary_key=True)
     name = models.CharField(max_length=200)
     bio = models.TextField()
-    img_url = models.URLField(max_length=300, blank=True, null=True)
+    img_url = models.URLField(max_length=1000, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)
 
 
 class Album(CoreModel):
-    id = models.CharField(max_length=300, primary_key=True)
+    id = models.CharField(max_length=1000, primary_key=True)
     name = models.CharField(max_length=200)
     release_year = models.PositiveIntegerField(blank=True)
-    img_url = models.URLField(max_length=300, blank=True, null=True)
+    img_url = models.URLField(max_length=1000, blank=True, null=True)
 
     def __str__(self):
         return str(self.name)

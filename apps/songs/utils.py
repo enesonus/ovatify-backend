@@ -1,3 +1,4 @@
+import random
 import time
 from typing import Tuple, List
 from django.db.models import Model
@@ -13,6 +14,8 @@ from songs.models import (Album, Artist,
                           Instrument)
 
 from spotipy.oauth2 import SpotifyClientCredentials
+
+from spotipy.exceptions import SpotifyException
 
 from datetime import timedelta
 
@@ -141,6 +144,7 @@ def add_song_helper(track=None):
     if track is None:
         return {'error': 'Song not found'}
     else:
+        time.sleep(0.1)
         audio_features = sp.audio_features([track['id']])
         genres, artist_img = get_genres_and_artist_info(track, sp)
 
@@ -160,7 +164,7 @@ def add_song_helper(track=None):
             else:
                 mood = Mood.EXCITED
             # Create necessary objects in the database
-            new_song, created = Song.objects.get_or_create(
+            new_song, is_created = Song.objects.get_or_create(
                 id=track['id'],
                 name=track['name'].title(),
                 release_year=track['album']['release_date'][:4],
@@ -171,12 +175,12 @@ def add_song_helper(track=None):
                 img_url=track['album']['images'][0]['url'],
                 version=track['album']['release_date'],
             )
-            if created:
+            if is_created:
                 for genre_name in genres:
                     if genre_name:
                         genre, genre_created = Genre.objects.get_or_create(name=genre_name)
                         new_song.genres.add(genre)
-                
+
                 for artist in track['artists']:
                     artist_name = artist['name'].title()
                     artist_bio = get_artist_bio(artist_name)
@@ -203,31 +207,101 @@ def add_song_helper(track=None):
                                                                             release_year=track['album']['release_date'][:4],
                                                                             img_url=track['album']['images'][0]['url'])
                 new_song.albums.add(album_instance)
+                return {'message': 'Song added successfully'}
             else:
-                if created:
-                    return {'message': 'Song added successfully'}
-                else:
-                    return {'error': "You have already added this song"}
+                return {'error': "You have already added this song"}
 
 
-def addSongPerArtistFromSpotify():
+def addBatchSongFromSpotify(genres=None, artists=None, is_from_album=False):
 
     client_credentials = SpotifyClientCredentials(client_id=os.getenv('SPOTIPY_CLIENT_ID'), client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'))
     sp = spotipy.Spotify(client_credentials_manager=client_credentials)
 
     # Use the provided Spotify ID to get track information directly
-    all_artists = Artist.objects.all()
+    all_artists = []
+    if genres is not None:
+        for genre in genres:
+            genre_songs = genre.song_set.all()
+            for song in genre_songs:
+                all_artists.extend(song.artists.all())
+
+    if artists is not None:
+        artists = Artist.objects.filter(name__in=artists)
+        all_artists.extend(artists)
+
+    all_artists = list(set(all_artists))
+    print(f"Total artists: {len(all_artists)}")
+
+    random.shuffle(all_artists)
     for artist in all_artists:
         print(f"----------------------\nArtist: {artist.name}")
-        top_tracks = sp.artist_top_tracks(artist_id=artist.id,
-                                          country='TR')
-        for track in top_tracks['tracks']:
-            return_data = add_song_helper(track=track)
+        top_tracks = []
+        if is_from_album:
+            albums = sp.artist_albums(artist_id=artist.id,
+                                      country='TR',
+                                      limit=10)
+            for album in albums['items']:
+                album_tracks = sp.album_tracks(album_id=album['id'],
+                                               limit=15)
+                album_tracks = album_tracks['items']
 
-            if return_data is None:
-                print("error: return_data is None")
+                for track in album_tracks:
+                    track['album'] = album
+                top_tracks.extend(album_tracks)
+            if len(top_tracks) > 50:
+                top_tracks = random.sample(top_tracks, 50)
+
+        if is_from_album is False:
+            top_tracks = sp.artist_top_tracks(artist_id=artist.id,
+                                          country='TR')
+            top_tracks = top_tracks['tracks']
+
+        print(f"Total tracks: {len(top_tracks)}\n")
+        for track in top_tracks:
+            try:
+                return_data = add_song_helper(track=track)
+
+                if return_data is None:
+                    print("error: return_data is None")
+                    continue
+                if return_data.get("error") is not None:
+                    print(f"error: {return_data['error']}")
+            except Exception as e:
+                print(f"error: {e}")
                 continue
-            if return_data.get("error") is not None:
-                print(f"error: {return_data['error']}")
-        time.sleep(3)
+        n=10
+        print(f"Sleeping for {n} seconds")
+        time.sleep(n)
     return JsonResponse({'message': 'Songs added successfully'}, status=201)
+
+
+def addArtistsToSongsWithoutArtists():
+    songs = Song.objects.filter(artists__isnull=True)
+    client_id = os.getenv('SPOTIPY_CLIENT_ID')
+    client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
+    client_credentials = SpotifyClientCredentials(client_id=client_id,
+                                                  client_secret=client_secret)
+    sp = spotipy.Spotify(client_credentials_manager=client_credentials)
+
+    for song in songs:
+        try:
+            id = song.id
+            print(f"Adding song: {song.name}")
+            song.hard_delete()
+            new_song = sp.track(track_id=id)
+            add_song_helper(track=new_song)
+            print("Sleeping for 2 seconds")
+            time.sleep(2)
+        except SpotifyException as e:
+            status, _, _ = e.http_status, e.code, e.reason
+            if status == 429:
+                print(f"ABORTING {str(e)}")
+                song.save()
+                return
+            if status == 400:
+                print(f"Invalid song ID {str(e)}")
+                continue
+        except Exception as e:
+            print(f"Exception {str(e)}")
+
+    return print('message: Songs added successfully')
