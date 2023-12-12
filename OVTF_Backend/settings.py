@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "songs",
     "users",
     "drf_spectacular",
+    "django_nose",
     "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -54,6 +55,14 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# Use nose to run all tests
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
+# Tell nose to measure coverage on the 'foo' and 'bar' apps
+NOSE_ARGS = [
+    '--with-coverage',
+    '--cover-package=users,songs',
+]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # CORS
