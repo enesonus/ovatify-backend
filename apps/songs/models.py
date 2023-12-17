@@ -63,7 +63,8 @@ class Song(CoreModel):
 
 
 class Artist(CoreModel):
-    id = models.CharField(max_length=1000,primary_key=True)
+    id = models.CharField(max_length=1000,
+                          primary_key=True)
     name = models.CharField(max_length=200)
     bio = models.TextField()
     img_url = models.URLField(max_length=1000, blank=True, null=True)
@@ -86,6 +87,26 @@ class Instrument(CoreModel):
     id = models.AutoField(primary_key=True)
     type = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return str(self.name)
+
+
+class Playlist(CoreModel):
+    from users.models import FriendGroup, User
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    songs = models.ManyToManyField('Song', through='PlaylistSong')
+    user = models.ForeignKey('users.User',
+                             on_delete=models.CASCADE,
+                             related_name='playlists',
+                             null=True, blank=True)
+    friend_group = models.ForeignKey('users.FriendGroup',
+                                     on_delete=models.CASCADE,
+                                     related_name='playlists',
+                                     null=True, blank=True)
 
     def __str__(self):
         return str(self.name)
@@ -122,3 +143,11 @@ class InstrumentSong(CoreModel):
 
     class Meta:
         unique_together = (('instrument', 'song'),)
+
+
+class PlaylistSong(CoreModel):
+    playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
+    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (('playlist', 'song'),)
