@@ -1370,6 +1370,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of top genres to return. If not specified, all genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -1392,7 +1401,7 @@
             }
           },
           "400": {
-            "description": "Invalid number of songs."
+            "description": "Invalid parameters."
           },
           "404": {
             "description": "User not found."
@@ -1424,6 +1433,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of top artists to return. If not specified, all artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -1446,7 +1464,7 @@
             }
           },
           "400": {
-            "description": "Invalid number of songs."
+            "description": "Invalid parameters."
           },
           "404": {
             "description": "User not found."
@@ -2117,31 +2135,38 @@
           "200": {
             "description": "Successful retrieval of song addition counts per day.",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "song_counts": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "date": {
-                            "type": "string",
-                            "format": "date",
-                            "description": "The date in 'dd-mm' format."
-                          },
-                          "count": {
-                            "type": "integer",
-                            "description": "The number of songs added on this date."
-                          }
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "song_counts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "count": {
+                          "type": "integer"
                         }
                       }
                     }
                   }
+                },
+                "example": {
+                  "song_counts": [
+                    {"date": "01-01", "count": 3},
+                    {"date": "02-01", "count": 2},
+                    {"date": "03-01", "count": 4},
+                    {"date": "04-01", "count": 1},
+                    {"date": "05-01", "count": 0}
+                  ]
                 }
               }
             }
+          }
           },
           "404": {
             "description": "User does not exist."
@@ -2693,7 +2718,421 @@
           }
         ]
       }
+    },
+    "/users/get-all-data-sharing-friends/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "summary": "Retrieve all friends of the user who have consented to data sharing.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of all friends with data sharing consent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "friends": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "img_url": {
+                            "type": "string",
+                            "format": "url",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "500": {
+            "description": "Internal server error or database error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+  },
+  "/users/get-friends-favorite-genres/": {
+    "get": {
+      "tags": [
+        "User",
+        "Friend",
+        "Chart"
+      ],
+      "summary": "Retrieve the favorite music genres of a specific friend, considering their data sharing consent.",
+      "parameters": [
+        {
+          "name": "friend_id",
+          "in": "query",
+          "description": "Unique identifier of the friend whose favorite genres are to be retrieved.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number_of_songs",
+          "in": "query",
+          "description": "The number of songs to consider for determining the friend's favorite genres. If not specified, all rated songs of the friend will be considered.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "description": "The maximum number of top genres to return. If not specified, all genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response with a list of the friend's favorite genres.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "example": {
+                  "Genre 1": 5,
+                  "Genre 2": 3,
+                  "Genre 3": 2
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters or user does not share data."
+        },
+        "404": {
+          "description": "User not found."
+        },
+        "500": {
+          "description": "Internal server error."
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
     }
+  },
+  "/users/get-friends-favorite-artists/": {
+    "get": {
+      "tags": [
+        "User",
+        "Friend",
+        "Chart"
+      ],
+      "summary": "Retrieve the favorite artists of a specific friend, considering their data sharing consent.",
+      "parameters": [
+        {
+          "name": "friend_id",
+          "in": "query",
+          "description": "Unique identifier of the friend whose favorite artists are to be retrieved.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number_of_songs",
+          "in": "query",
+          "description": "The number of songs to consider for determining the friend's favorite artists. If not specified, all rated songs of the friend will be considered.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "description": "The maximum number of top artists to return. If not specified, all artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response with a list of the friend's favorite artists.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "example": {
+                  "Artist 1": 5,
+                  "Artist 2": 3,
+                  "Artist 3": 2
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters or user does not share data."
+        },
+        "404": {
+          "description": "User not found."
+        },
+        "500": {
+          "description": "Internal server error."
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  },
+  "/users/get-friends-favorite-moods/": {
+    "get": {
+      "tags": [
+        "User",
+        "Friend",
+        "Chart"
+      ],
+      "summary": "Retrieve the favorite music moods of a specific friend, considering their data sharing consent.",
+      "parameters": [
+        {
+          "name": "friend_id",
+          "in": "query",
+          "description": "Unique identifier of the friend whose favorite music moods are to be retrieved.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number_of_songs",
+          "in": "query",
+          "description": "The number of songs to consider for determining the friend's favorite music moods. If not specified, all rated songs of the friend will be considered.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response with a list of the friend's favorite music moods.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "example": {
+                  "Excited": 5,
+                  "Relaxed": 3,
+                  "Happy": 2,
+                  "Sad": 1
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters or user does not share data."
+        },
+        "404": {
+          "description": "User not found."
+        },
+        "500": {
+          "description": "Internal server error."
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  },
+  "/users/get-friends-favorite-tempos/": {
+    "get": {
+      "tags": [
+        "User",
+        "Friend",
+        "Chart"
+      ],
+      "summary": "Retrieve the favorite music tempos of a specific friend, considering their data sharing consent.",
+      "parameters": [
+        {
+          "name": "friend_id",
+          "in": "query",
+          "description": "Unique identifier of the friend whose favorite music tempos are to be retrieved.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "number_of_songs",
+          "in": "query",
+          "description": "The number of songs to consider for determining the friend's favorite music tempos. If not specified, all rated songs of the friend will be considered.",
+          "required": false,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response with a list of the friend's favorite music tempos.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "example": {
+                  "Fast": 5,
+                  "Medium": 3,
+                  "Slow": 2
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters or user does not share data."
+        },
+        "404": {
+          "description": "User not found."
+        },
+        "500": {
+          "description": "Internal server error."
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  },
+  "/users/get-friends-recent-addition-counts/": {
+    "get": {
+      "tags": [
+        "User",
+        "Friend",
+        "Chart"
+      ],
+      "summary": "Retrieve the count of songs added by a specific friend over the last five days, considering their data sharing consent.",
+      "parameters": [
+        {
+          "name": "friend_id",
+          "in": "query",
+          "description": "Unique identifier of the friend whose recent song addition count is to be retrieved.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response with a count of songs added by the friend over the most recent five days.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "song_counts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "count": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "song_counts": [
+                    {"date": "01-01", "count": 3},
+                    {"date": "02-01", "count": 2},
+                    {"date": "03-01", "count": 4},
+                    {"date": "04-01", "count": 1},
+                    {"date": "05-01", "count": 0}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid parameters or user does not share data."
+        },
+        "404": {
+          "description": "User not found."
+        },
+        "500": {
+          "description": "Internal server error."
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
   },
   "components": {
     "schemas": {

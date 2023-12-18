@@ -51,4 +51,10 @@ urlpatterns = [
     path('get-library-artist-names/', views.get_library_artist_names, name='get-library-artist-names'),
     path('get-library-genre-names/', views.get_library_genre_names, name='get-library-genre-names'),
     path('upload-file/', views.import_song_JSON, name='import-song-json'),
+    path('get-all-data-sharing-friends/', views.get_all_data_sharing_friends, name='get-all-data-sharing-friends'),
+    path('get-friends-favorite-genres/', views.get_friends_favorite_genres, name='get-friends-favorite-genres'),
+    path('get-friends-favorite-artists/', views.get_friends_favorite_artists, name='get-friends-favorite-artists'),
+    path('get-friends-favorite-moods/', views.get_friends_favorite_moods, name='get-friends-favorite-moods'),
+    path('get-friends-favorite-tempos/', views.get_friends_favorite_tempos, name='get-friends-favorite-tempos'),
+    path('get-friends-recent-addition-counts/', views.get_friends_recent_addition_by_count, name='get-friends-recent-addition-count'),
 ]

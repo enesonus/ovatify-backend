@@ -93,7 +93,7 @@ def create_user(request, userid):
         return HttpResponse(status=201)
     except Exception as e:
         #TODO logging.("create_user: " + str(e))
-        return HttpResponse(status=500)
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -653,6 +653,9 @@ def get_favorite_genres(request, userid):
     try:
         data = request.GET
         number_of_songs = data.get('number_of_songs')
+        limit = data.get('limit')
+        if limit:
+            limit = int(limit)
         user = User.objects.get(id=userid)
         if number_of_songs is None:
             user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
@@ -667,12 +670,14 @@ def get_favorite_genres(request, userid):
             all_genres = [genre_song.genre for genre_song in song_genre_table]
             for genre in all_genres:
                 genre_counts[genre.name] += 1
-
-        return JsonResponse(dict(genre_counts.most_common()), status=200)
+        if not limit:
+            return JsonResponse(dict(genre_counts.most_common()), status=200)
+        else:
+            return JsonResponse(dict(genre_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
-        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -685,6 +690,9 @@ def get_favorite_artists(request, userid):
     try:
         data = request.GET
         number_of_songs = data.get('number_of_songs')
+        limit = data.get('limit')
+        if limit:
+            limit = int(limit)
         user = User.objects.get(id=userid)
         if number_of_songs is None:
             user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
@@ -698,12 +706,14 @@ def get_favorite_artists(request, userid):
             all_artists = [artist_song.artist for artist_song in song_artist_table]
             for artist in all_artists:
                 artist_counts[artist.name] += 1
-
-        return JsonResponse(dict(artist_counts.most_common()), status=200)
+        if not limit:
+            return JsonResponse(dict(artist_counts.most_common()), status=200)
+        else:
+            return JsonResponse(dict(artist_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except ValueError:
-        return JsonResponse({'error': 'Invalid number of songs'}, status=400)
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -1727,6 +1737,205 @@ def get_library_genre_names(request, userid):
         if not genres:
             return JsonResponse({'error': 'No genre is found for the user'}, status=404)
         return JsonResponse({'genres': list(genres)}, status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_all_data_sharing_friends(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    # retrieve all users from database
+    try:
+        user = User.objects.get(id=userid)
+        friends = user.friends.all()
+        all_friends = [
+            {
+                'id': friend.id,
+                'name': friend.username,
+                'img_url': friend.img_url
+            }
+            for friend in friends if friend.userpreferences.data_sharing_consent
+        ]
+        return JsonResponse({'friends': all_friends}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": "Database error"}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_friends_favorite_genres(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs = data.get('number_of_songs')
+        friend_id = data.get('friend_id')
+        limit = data.get('limit')
+        if limit:
+            limit = int(limit)
+        user = User.objects.get(id=friend_id)
+        user_preferences = user.userpreferences
+        if user_preferences.data_sharing_consent is False:
+            return JsonResponse({'error': 'User does not share data'}, status=400)
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
+        genre_counts = Counter()
+        for song in songs:
+            song_genre_table = song.genresong_set.prefetch_related('genre').all()
+            all_genres = [genre_song.genre for genre_song in song_genre_table]
+            for genre in all_genres:
+                genre_counts[genre.name] += 1
+        if not limit:
+            return JsonResponse(dict(genre_counts.most_common()), status=200)
+        else:
+            return JsonResponse(dict(genre_counts.most_common(limit)), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_friends_favorite_artists(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs = data.get('number_of_songs')
+        friend_id = data.get('friend_id')
+        limit = data.get('limit')
+        if limit:
+            limit = int(limit)
+        user = User.objects.get(id=friend_id)
+        user_preferences = user.userpreferences
+        if user_preferences.data_sharing_consent is False:
+            return JsonResponse({'error': 'User does not share data'}, status=400)
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
+        artist_counts = Counter()
+        for song in songs:
+            song_artist_table = song.artistsong_set.prefetch_related('artist').all()
+            all_artists = [artist_song.artist for artist_song in song_artist_table]
+            for artist in all_artists:
+                artist_counts[artist.name] += 1
+        if not limit:
+            return JsonResponse(dict(artist_counts.most_common()), status=200)
+        else:
+            return JsonResponse(dict(artist_counts.most_common(limit)), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_friends_favorite_moods(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs = data.get('number_of_songs')
+        friend_id = data.get('friend_id')
+        user = User.objects.get(id=friend_id)
+        user_preferences = user.userpreferences
+        if user_preferences.data_sharing_consent is False:
+            return JsonResponse({'error': 'User does not share data'}, status=400)
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
+        mood_counts = Counter()
+        for song in songs:
+            mood_label = Mood(song.mood).label
+            mood_counts[mood_label] += 1
+        return JsonResponse(dict(mood_counts.most_common()), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_friends_favorite_tempos(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        number_of_songs = data.get('number_of_songs')
+        friend_id = data.get('friend_id')
+        user = User.objects.get(id=friend_id)
+        user_preferences = user.userpreferences
+        if user_preferences.data_sharing_consent is False:
+            return JsonResponse({'error': 'User does not share data'}, status=400)
+        if number_of_songs is None:
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating').all()
+        else:
+            number_of_songs = int(number_of_songs)
+            user_songs_ratings = user.usersongrating_set.prefetch_related('song').order_by('-rating')[:number_of_songs]
+        songs = [song_rating.song for song_rating in user_songs_ratings]
+        tempo_counts = Counter()
+        for song in songs:
+            tempo_label = Tempo(song.tempo).label
+            tempo_counts[tempo_label] += 1
+        return JsonResponse(dict(tempo_counts.most_common()), status=200)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def get_friends_recent_addition_by_count(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        friend_id = data.get('friend_id')
+        user = User.objects.get(id=friend_id)
+        user_preferences = user.userpreferences
+        if user_preferences.data_sharing_consent is False:
+            return JsonResponse({'error': 'User does not share data'}, status=400)
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=4)
+        start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+        song_count_by_day = {start_date + timedelta(days=i): 0 for i in range(5)}
+        user_songs_per_day = user.usersongrating_set.filter(created_at__gte=start_datetime).prefetch_related('song').order_by('-created_at')
+        for song_rating in user_songs_per_day:
+            # Extract just the date part of the 'created_at' datetime
+            created_date = song_rating.created_at.date()
+
+            # Check if the created date is within our range
+            if start_date <= created_date <= end_date:
+                song_count_by_day[created_date] += 1
+        formatted_song_count_by_day = {date.strftime("%d-%m"): count for date, count in song_count_by_day.items()}
+        song_count_list = [{'date': date, 'count': count} for date, count in formatted_song_count_by_day.items()]
+        return JsonResponse({'song_counts': song_count_list}, status=200)
     except User.DoesNotExist:
         return JsonResponse({'error': 'User does not exist'}, status=404)
     except Exception as e:
