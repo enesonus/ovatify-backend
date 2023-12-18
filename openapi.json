@@ -1374,7 +1374,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "The maximum number of top genres to return. If not specified, all genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
+            "description": "The maximum number of top genres to return. If not specified, 10 genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
             "required": false,
             "schema": {
               "type": "integer"
@@ -1437,7 +1437,7 @@
           {
             "name": "limit",
             "in": "query",
-            "description": "The maximum number of top artists to return. If not specified, all artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
+            "description": "The maximum number of top artists to return. If not specified, 10 artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
             "required": false,
             "schema": {
               "type": "integer"
@@ -2802,7 +2802,7 @@
         {
           "name": "limit",
           "in": "query",
-          "description": "The maximum number of top genres to return. If not specified, all genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
+          "description": "The maximum number of top genres to return. If not specified, 10 genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
           "required": false,
           "schema": {
             "type": "integer"
@@ -2875,7 +2875,7 @@
         {
           "name": "limit",
           "in": "query",
-          "description": "The maximum number of top artists to return. If not specified, all artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
+          "description": "The maximum number of top artists to return. If not specified, 10 artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
           "required": false,
           "schema": {
             "type": "integer"
