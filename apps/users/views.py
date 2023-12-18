@@ -671,7 +671,7 @@ def get_favorite_genres(request, userid):
             for genre in all_genres:
                 genre_counts[genre.name] += 1
         if not limit:
-            return JsonResponse(dict(genre_counts.most_common()), status=200)
+            return JsonResponse(dict(genre_counts.most_common(10)), status=200)
         else:
             return JsonResponse(dict(genre_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
@@ -707,7 +707,7 @@ def get_favorite_artists(request, userid):
             for artist in all_artists:
                 artist_counts[artist.name] += 1
         if not limit:
-            return JsonResponse(dict(artist_counts.most_common()), status=200)
+            return JsonResponse(dict(artist_counts.most_common(10)), status=200)
         else:
             return JsonResponse(dict(artist_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
@@ -1794,7 +1794,7 @@ def get_friends_favorite_genres(request, userid):
             for genre in all_genres:
                 genre_counts[genre.name] += 1
         if not limit:
-            return JsonResponse(dict(genre_counts.most_common()), status=200)
+            return JsonResponse(dict(genre_counts.most_common(10)), status=200)
         else:
             return JsonResponse(dict(genre_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
@@ -1834,7 +1834,7 @@ def get_friends_favorite_artists(request, userid):
             for artist in all_artists:
                 artist_counts[artist.name] += 1
         if not limit:
-            return JsonResponse(dict(artist_counts.most_common()), status=200)
+            return JsonResponse(dict(artist_counts.most_common(10)), status=200)
         else:
             return JsonResponse(dict(artist_counts.most_common(limit)), status=200)
     except User.DoesNotExist:
