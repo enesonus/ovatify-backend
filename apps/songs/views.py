@@ -15,8 +15,7 @@ from songs.models import (Instrument, Mood, RecordedEnvironment,
                           AlbumSong, Genre, GenreSong, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
 from users.models import User, UserSongRating
-from fuzzywuzzy import fuzz
-from django.core.serializers import serialize
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
 
 
 # Create your views here.
@@ -42,52 +41,27 @@ def search_db(request, userid):
         if not search_string or not search_fields:
             return JsonResponse({'error': 'Missing parameters'}, status=400)
 
-        # Dictionary to store match counts for each song
-        match_counts = {}
+        # Prepare the search query and vector
+        search_query = SearchQuery(search_string)
+        search_vector = SearchVector('name', 'albums__name', 'artists__name')
 
-        # Filter songs based on the specified search fields
-        for field in search_fields:
-            # Split the search string into words
-            search_words = search_string.split()
+        # Annotate each song with its search rank and trigram similarity
+        songs = Song.objects.annotate(
+            rank=SearchRank(search_vector, search_query),
+            similarity=TrigramSimilarity('name', search_string) +
+                       TrigramSimilarity('albums__name', search_string) +
+                       TrigramSimilarity('artists__name', search_string)
+        )
 
-            # Use Q objects to build an OR query for each word in the search string
-            query = Q()
-            for word in search_words:
-                # Filter based on related model fields for ForeignKey fields
-                if field == 'artists':
-                    query |= Q(**{f'{field}__name__icontains': word})
-                elif field == 'albums':
-                    query |= Q(**{f'{field}__name__icontains': word})
-                else:
-                    query |= Q(**{f'{field}__icontains': word})
-
-            # Apply the query to filter songs
-            songs = Song.objects.filter(query)
-
-            # Concatenate song name, genre, album name, and artist's name for each instance
-            for song in songs:
-                genres = [genre.name for genre in song.genres.all()]
-                albums = [album.name for album in song.albums.all()]
-                artists = [artist.name for artist in song.artists.all()]
-
-                instance_str = f"{song.name} {', '.join(albums)} {', '.join(artists)}"
-
-                # Perform similarity check using fuzzywuzzy's partial_ratio
-                match_ratio = fuzz.partial_ratio(search_string.lower(), instance_str.lower())
-
-                # Store match ratio for each song
-                if song.id not in match_counts:
-                    match_counts[song.id] = 0
-
-                match_counts[song.id] += match_ratio
-
-        # Sort the songs based on match ratios in descending order
-        sorted_songs = sorted(match_counts.items(), key=lambda item: item[1], reverse=True)
+        # Filter songs based on combined rank and similarity
+        songs = songs.filter(
+            Q(rank__gte=0.4) | 
+            Q(similarity__gt=0.4)
+        ).order_by('-rank', '-similarity')
 
         # Convert the sorted list to a list of song dictionaries for JsonResponse
         songs_info = []
-        for song_id, match_ratio in sorted_songs:
-            song = Song.objects.get(pk=song_id)
+        for song in songs:
             song_info = {
                 'spotify_id': song.id,
                 'track_name': song.name,
