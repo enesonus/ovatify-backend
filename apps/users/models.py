@@ -62,6 +62,12 @@ class FriendGroup(CoreModel):
     img_url = models.URLField(max_length=300,
                               blank=True, null=True)
     friends = models.ManyToManyField(User, related_name='friend_groups')
+    created_by = models.ForeignKey(
+        "users.User", on_delete=models.PROTECT,
+        null=False, blank=True,
+        related_name="%(app_label)s_%(class)s_created_by",
+        verbose_name='Created By'
+    )
     # Do not forget to add created_by(this field is in CoreModel) to this model while creating it 
 
     def __str__(self):
