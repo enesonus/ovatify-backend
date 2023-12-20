@@ -308,6 +308,17 @@ def addArtistsToSongsWithoutArtists():
     return print('message: Songs added successfully')
 
 
+def serializePlaylistMinimum(playlist: Playlist):
+    return {
+        'id': playlist.id,
+        'name': playlist.name,
+        'description': playlist.description,
+        'songs': [serializeSongMinimum(song) for song in playlist.songs.all()],
+        'user_id': playlist.user.id if playlist.user is not None else None,
+        'friend_group_id': playlist.friend_group.id if playlist.friend_group is not None else None,
+    }
+
+
 def serializePlaylist(playlist: Playlist):
     return {
         'id': playlist.id,
@@ -316,6 +327,16 @@ def serializePlaylist(playlist: Playlist):
         'songs': [serializeSong(song) for song in playlist.songs.all()],
         'user_id': playlist.user.id if playlist.user is not None else None,
         'friend_group_id': playlist.friend_group.id if playlist.friend_group is not None else None,
+    }
+
+
+def serializeSongMinimum(song: Song):
+    return {
+        'id': song.id,
+        'name': song.name,
+        'release_year': song.release_year,
+        'img_url': song.img_url,
+        'main_artist': song.artists.all().first().name if song.artists.all().first() is not None else None,
     }
 
 

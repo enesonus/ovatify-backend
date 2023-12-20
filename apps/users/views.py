@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 import spotipy
-from songs.utils import serializePlaylist
+from songs.utils import serializePlaylist, serializePlaylistMinimum
 from users.utils import recommendation_creator
 from songs.models import Playlist, Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
 from users.models import User, UserPreferences, UserSongRating, Friend, FriendRequest, RequestStatus
@@ -1946,6 +1946,7 @@ def get_friends_recent_addition_by_count(request, userid):
 @csrf_exempt
 @token_required
 def get_playlists(request, userid):
+    # TODO: Waiting Akif
     if request.method != 'GET':
         return HttpResponse(status=405)
     try:
@@ -1957,15 +1958,13 @@ def get_playlists(request, userid):
             return JsonResponse({'error': 'User does not exist'}, status=404)
 
         playlists = user.playlists.all()
-        if len(playlists) == 0:
-            return JsonResponse({'error': 'No playlists found'}, status=404)
 
         if len(playlists) > count:
             playlists = playlists[:count]
 
         data = []
         for playlist in playlists:
-            serialized_pl = serializePlaylist(playlist)
+            serialized_pl = serializePlaylistMinimum(playlist)
             data.append(serialized_pl)
         return JsonResponse({'items': data, 'count': len(data)}, status=200)
     except Exception as e:
@@ -1973,10 +1972,10 @@ def get_playlists(request, userid):
 
 
 def add_song_to_playlist(request, userid):
-    if request.method != 'GET':
+    if request.method != 'POST':
         return HttpResponse(status=405)
     try:
-        data = request.GET
+        data = json.loads(request.body)
         playlist_id = data.get('playlist_id')
         song_id = data.get('song_id')
         if playlist_id is None or song_id is None:
@@ -2000,7 +1999,7 @@ def add_song_to_playlist(request, userid):
 
 
 def remove_song_from_playlist(request, userid):
-    if request.method != 'GET':
+    if request.method != 'DELETE':
         return HttpResponse(status=405)
 
     try:
@@ -2056,7 +2055,7 @@ def create_empty_playlist(request, userid):
 
 
 def delete_playlist(request, userid):
-    if request.method != 'GET':
+    if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
         data = request.GET
