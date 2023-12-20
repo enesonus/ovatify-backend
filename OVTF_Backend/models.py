@@ -96,8 +96,6 @@ class CoreModel(models.Model):
         return value
 
     def delete(self):
-        if hasattr(self, 'email'):
-            self.email = str(uuid.uuid4()) + '@deleted.com'
         self.is_deleted = True
         self.is_active = False
         self.deleted_at = timezone.now()

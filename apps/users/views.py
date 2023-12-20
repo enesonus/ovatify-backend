@@ -103,7 +103,7 @@ def delete_user(request, userid):
         return HttpResponse(status=405)
     try:
         user = User.objects.get(id=userid)
-        user.delete()
+        user.hard_delete()
         return HttpResponse(status=204)
     except Exception as e:
         return HttpResponse(status=404)
