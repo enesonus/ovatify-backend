@@ -3120,7 +3120,7 @@
         ]
       }
     },
-    "/get_playlists/": {
+    "/users/get_playlists/": {
       "get": {
         "tags": ["Playlist"],
         "summary": "Retrieve playlists for a user",
@@ -3167,7 +3167,7 @@
         }
       }
     },
-    "/create-empty-playlist/": {
+    "/users/create-empty-playlist/": {
       "post": {
         "tags": ["Playlist"],
         "summary": "Create a new empty playlist",
@@ -3203,7 +3203,7 @@
         }
       }
     },
-    "/add-song-to-playlist/": {
+    "/users/add-song-to-playlist/": {
       "get": {
         "tags": ["Playlist"],
         "summary": "Add a song to a playlist",
@@ -3233,7 +3233,7 @@
         }
       }
     },
-    "/remove-song-from-playlist/": {
+    "/users/remove-song-from-playlist/": {
       "get": {
         "tags": ["Playlist"],
         "summary": "Remove a song from a playlist",
@@ -3263,7 +3263,7 @@
         }
       }
     },
-    "/delete-playlist/": {
+    "/users/delete-playlist/": {
       "get": {
         "tags": ["Playlist"],
         "summary": "Delete a playlist",
