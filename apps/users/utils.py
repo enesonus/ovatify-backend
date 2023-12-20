@@ -6,7 +6,7 @@ import random
 from django.core import serializers
 
 from songs.models import Mood, Tempo, Genre, Song, Artist
-from users.models import User
+from users.models import User, FriendGroup
 
 
 def getFavoriteSongs(userid: str, number_of_songs: int):
@@ -238,3 +238,25 @@ def get_recommendations(seed_artists=None,
     except Exception as e:
         return {"items": None,
                 "error": f"Unknown Error: {e}"}
+
+
+def serializeFriendGroupSimple(friend_group: FriendGroup):
+    return {
+        'id': friend_group.id,
+        'name': friend_group.name,
+        'description': friend_group.description,
+        'img_url': friend_group.img_url,
+        'admin': friend_group.created_by.username,
+    }
+
+
+def serializeFriendGroupExtended(friend_group: FriendGroup):
+    return {
+        'id': friend_group.id,
+        'name': friend_group.name,
+        'description': friend_group.description,
+        'img_url': friend_group.img_url,
+        'admin': friend_group.created_by.username,
+        'members': [{'id': member.id, 'username': member.username, 'img_url': member.img_url}
+                    for member in friend_group.friends.all()]
+    }

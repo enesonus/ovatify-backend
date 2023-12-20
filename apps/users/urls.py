@@ -64,4 +64,15 @@ urlpatterns = [
     path('create-empty-playlist/', views.create_empty_playlist, name='create_empty_playlist'),
     path('delete-playlist/', views.delete_playlist, name='delete_playlist'),
     path('edit-playlist/', views.edit_playlist, name='edit_playlist'),
+    path('get-global-all-friend-groups/', views.get_global_all_friend_groups, name='get-global-all-friend-groups'),
+    path('create-friend-group/', views.create_friend_group, name='create-friend-group'),
+    path('get-friend-group-by-id/', views.get_friend_group_by_id, name='get-friend-group-by-id'),
+    path('add-friend-to-group/', views.add_friend_to_group, name='add-friend-to-group'),
+    path('remove-friend-from-group/', views.remove_friend_from_group, name='remove-friend-from-group'),
+    path('delete-friend-group/', views.delete_friend_group, name='delete-friend-group'),
+    path('get-all-friend-groups-of-user/', views.get_all_friend_groups_of_user, name='get-all-friend-groups-of-user'),
+    path('get-playlists-of-group/', views.get_playlists_of_group, name='get-playlists-of-group'),
+    path('create-empty-playlist-in-group/', views.create_empty_playlist_in_group, name='create-empty-playlist-in-group'),
+    path('delete-playlist-from-group/', views.delete_playlist_from_group, name='delete-playlist-from-group'),
+
 ]
