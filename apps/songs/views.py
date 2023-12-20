@@ -534,3 +534,110 @@ def get_random_genres(request, userid):
         return JsonResponse({'error': 'Invalid number of genres'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def search_artists(request):
+    if request.method == 'GET':
+        search_text = request.GET.get('search_text', '')
+
+        if search_text:
+            artists = Artist.objects.filter(name__istartswith=search_text).order_by('name')[:10]
+        else:
+            artists = Artist.objects.all().order_by('name')[:10]
+
+        artists_info = [
+            {
+                'name': artist.name,
+            }
+            for artist in artists
+        ]
+
+        return JsonResponse({'message': 'Artists found', 'artists_info': artists_info}, status=200)
+
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+def search_genres(request):
+    if request.method == 'GET':
+        search_text = request.GET.get('search_text', '')
+
+        if search_text:
+            genres = Genre.objects.filter(name__istartswith=search_text).order_by('name')[:10]
+        else:
+            genres = Genre.objects.all().order_by('name')[:10]
+        genres_info = [
+            {
+                'name': genre.name,
+            }
+            for genre in genres
+        ]
+
+        return JsonResponse({'message': 'Genres found', 'genres_info': genres_info}, status=200)
+
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+@csrf_exempt
+@token_required
+def get_all_moods(request):
+    if request.method == 'GET':
+        moods = [{'value': mood.value, 'label': mood.label} for mood in Mood.choices]
+        return JsonResponse({'message': 'All moods', 'moods': moods}, status=200)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+
+@csrf_exempt
+@token_required
+def get_all_tempos(request):
+    if request.method == 'GET':
+        tempos = [{'value': tempo.value, 'label': tempo.label} for tempo in Tempo.choices]
+        return JsonResponse({'message': 'All tempos', 'tempos': tempos}, status=200)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+
+@csrf_exempt
+@token_required
+def get_banger_songs(request):
+    if request.method == 'GET':
+        data = request.GET  # Use GET instead of POST for query parameters
+
+        artist_name = data.get('artist', '')
+        genre_name = data.get('genre', '')
+        mood = data.get('mood', '')
+        tempo = data.get('tempo', '')
+
+        songs = Song.objects.all()
+
+        if artist_name:
+            songs = songs.filter(artists__name__iexact=artist_name)
+
+        if genre_name:
+            songs = songs.filter(genres__name__iexact=genre_name)
+
+        if mood:
+            songs = songs.filter(mood=mood)
+
+        if tempo:
+            songs = songs.filter(tempo=tempo)
+
+        # Randomize the order and retrieve one song
+        if songs.exists():
+            random_song = songs.order_by('?').first()
+
+            song_info = {
+                'id': random_song.id,
+                'name': random_song.name,
+                'year': random_song.release_year,
+                'album': [album.name for album in random_song.albums.all()],
+                'artists': [artist.name for artist in random_song.artists.all()],
+                'album_url': random_song.img_url,
+            }
+
+            return JsonResponse({'message': 'Random Banger song found', 'song_info': song_info}, status=200)
+        else:
+            return JsonResponse({'message': 'No Banger songs found with the given filters'}, status=404)
+
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=400)
