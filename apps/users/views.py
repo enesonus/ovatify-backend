@@ -1952,6 +1952,9 @@ def get_playlists(request, userid):
     try:
         data = request.GET
         count = data.get('number_of_playlists')
+        if count is None:
+            count = 10
+        count = int(count)
         user = User.objects.filter(id=userid).first()
 
         if user is None:
