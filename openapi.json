@@ -2771,355 +2771,521 @@
           }
         ]
       }
-  },
-  "/users/get-friends-favorite-genres/": {
-    "get": {
-      "tags": [
-        "User",
-        "Friend",
-        "Chart"
-      ],
-      "summary": "Retrieve the favorite music genres of a specific friend, considering their data sharing consent.",
-      "parameters": [
-        {
-          "name": "friend_id",
-          "in": "query",
-          "description": "Unique identifier of the friend whose favorite genres are to be retrieved.",
-          "required": true,
-          "schema": {
-            "type": "string"
+    },
+    "/users/get-friends-favorite-genres/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend",
+          "Chart"
+        ],
+        "summary": "Retrieve the favorite music genres of a specific friend, considering their data sharing consent.",
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "description": "Unique identifier of the friend whose favorite genres are to be retrieved.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining the friend's favorite genres. If not specified, all rated songs of the friend will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of top genres to return. If not specified, 10 genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
-        },
-        {
-          "name": "number_of_songs",
-          "in": "query",
-          "description": "The number of songs to consider for determining the friend's favorite genres. If not specified, all rated songs of the friend will be considered.",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "description": "The maximum number of top genres to return. If not specified, 10 genres will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much genres for a given number of songs, and it looks ugly in the chart, you can limit the number of genres to be returned.",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful response with a list of the friend's favorite genres.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "example": {
-                  "Genre 1": 5,
-                  "Genre 2": 3,
-                  "Genre 3": 2
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of the friend's favorite genres.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Genre 1": 5,
+                    "Genre 2": 3,
+                    "Genre 3": 2
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters or user does not share data."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
           }
         },
-        "400": {
-          "description": "Invalid parameters or user does not share data."
-        },
-        "404": {
-          "description": "User not found."
-        },
-        "500": {
-          "description": "Internal server error."
-        }
-      },
-      "security": [
-        {
-          "bearerAuth": []
-        }
-      ]
-    }
-  },
-  "/users/get-friends-favorite-artists/": {
-    "get": {
-      "tags": [
-        "User",
-        "Friend",
-        "Chart"
-      ],
-      "summary": "Retrieve the favorite artists of a specific friend, considering their data sharing consent.",
-      "parameters": [
-        {
-          "name": "friend_id",
-          "in": "query",
-          "description": "Unique identifier of the friend whose favorite artists are to be retrieved.",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        {
-          "name": "number_of_songs",
-          "in": "query",
-          "description": "The number of songs to consider for determining the friend's favorite artists. If not specified, all rated songs of the friend will be considered.",
-          "required": false,
-          "schema": {
-            "type": "integer"
+        ]
+      }
+    },
+    "/users/get-friends-favorite-artists/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend",
+          "Chart"
+        ],
+        "summary": "Retrieve the favorite artists of a specific friend, considering their data sharing consent.",
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "description": "Unique identifier of the friend whose favorite artists are to be retrieved.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining the friend's favorite artists. If not specified, all rated songs of the friend will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of top artists to return. If not specified, 10 artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
-        },
-        {
-          "name": "limit",
-          "in": "query",
-          "description": "The maximum number of top artists to return. If not specified, 10 artists will be returned. You can configure this value to get a better visualization in the chart. For example, if you get too much artists for a given number of songs, and it looks ugly in the chart, you can limit the number of artists to be returned.",
-          "required": false,
-          "schema": {
-            "type": "integer"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful response with a list of the friend's favorite artists.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "example": {
-                  "Artist 1": 5,
-                  "Artist 2": 3,
-                  "Artist 3": 2
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of the friend's favorite artists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Artist 1": 5,
+                    "Artist 2": 3,
+                    "Artist 3": 2
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters or user does not share data."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
           }
         },
-        "400": {
-          "description": "Invalid parameters or user does not share data."
-        },
-        "404": {
-          "description": "User not found."
-        },
-        "500": {
-          "description": "Internal server error."
-        }
-      },
-      "security": [
-        {
-          "bearerAuth": []
-        }
-      ]
-    }
-  },
-  "/users/get-friends-favorite-moods/": {
-    "get": {
-      "tags": [
-        "User",
-        "Friend",
-        "Chart"
-      ],
-      "summary": "Retrieve the favorite music moods of a specific friend, considering their data sharing consent.",
-      "parameters": [
-        {
-          "name": "friend_id",
-          "in": "query",
-          "description": "Unique identifier of the friend whose favorite music moods are to be retrieved.",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        {
-          "name": "number_of_songs",
-          "in": "query",
-          "description": "The number of songs to consider for determining the friend's favorite music moods. If not specified, all rated songs of the friend will be considered.",
-          "required": false,
-          "schema": {
-            "type": "integer"
+        ]
+      }
+    },
+    "/users/get-friends-favorite-moods/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend",
+          "Chart"
+        ],
+        "summary": "Retrieve the favorite music moods of a specific friend, considering their data sharing consent.",
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "description": "Unique identifier of the friend whose favorite music moods are to be retrieved.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining the friend's favorite music moods. If not specified, all rated songs of the friend will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful response with a list of the friend's favorite music moods.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "example": {
-                  "Excited": 5,
-                  "Relaxed": 3,
-                  "Happy": 2,
-                  "Sad": 1
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of the friend's favorite music moods.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Excited": 5,
+                    "Relaxed": 3,
+                    "Happy": 2,
+                    "Sad": 1
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters or user does not share data."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
           }
         },
-        "400": {
-          "description": "Invalid parameters or user does not share data."
-        },
-        "404": {
-          "description": "User not found."
-        },
-        "500": {
-          "description": "Internal server error."
-        }
-      },
-      "security": [
-        {
-          "bearerAuth": []
-        }
-      ]
-    }
-  },
-  "/users/get-friends-favorite-tempos/": {
-    "get": {
-      "tags": [
-        "User",
-        "Friend",
-        "Chart"
-      ],
-      "summary": "Retrieve the favorite music tempos of a specific friend, considering their data sharing consent.",
-      "parameters": [
-        {
-          "name": "friend_id",
-          "in": "query",
-          "description": "Unique identifier of the friend whose favorite music tempos are to be retrieved.",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "security": [
+          {
+            "bearerAuth": []
           }
-        },
-        {
-          "name": "number_of_songs",
-          "in": "query",
-          "description": "The number of songs to consider for determining the friend's favorite music tempos. If not specified, all rated songs of the friend will be considered.",
-          "required": false,
-          "schema": {
-            "type": "integer"
+        ]
+      }
+    },
+    "/users/get-friends-favorite-tempos/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend",
+          "Chart"
+        ],
+        "summary": "Retrieve the favorite music tempos of a specific friend, considering their data sharing consent.",
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "description": "Unique identifier of the friend whose favorite music tempos are to be retrieved.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number_of_songs",
+            "in": "query",
+            "description": "The number of songs to consider for determining the friend's favorite music tempos. If not specified, all rated songs of the friend will be considered.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful response with a list of the friend's favorite music tempos.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "example": {
-                  "Fast": 5,
-                  "Medium": 3,
-                  "Slow": 2
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of the friend's favorite music tempos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "Fast": 5,
+                    "Medium": 3,
+                    "Slow": 2
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters or user does not share data."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
           }
         },
-        "400": {
-          "description": "Invalid parameters or user does not share data."
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-friends-recent-addition-counts/": {
+      "get": {
+        "tags": [
+          "User",
+          "Friend",
+          "Chart"
+        ],
+        "summary": "Retrieve the count of songs added by a specific friend over the last five days, considering their data sharing consent.",
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "description": "Unique identifier of the friend whose recent song addition count is to be retrieved.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a count of songs added by the friend over the most recent five days.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "song_counts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "example": {
+                    "song_counts": [
+                      {"date": "01-01", "count": 3},
+                      {"date": "02-01", "count": 2},
+                      {"date": "03-01", "count": 4},
+                      {"date": "04-01", "count": 1},
+                      {"date": "05-01", "count": 0}
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters or user does not share data."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
         },
-        "404": {
-          "description": "User not found."
-        },
-        "500": {
-          "description": "Internal server error."
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/get_playlists/": {
+      "get": {
+        "tags": ["Playlist"],
+        "summary": "Retrieve playlists for a user",
+        "description": "Fetches all playlists associated with a given user ID.",
+        "parameters": [
+          {
+            "name": "number_of_playlists",
+            "in": "query",
+            "description": "The number of playlists to retrieve. If not specified, all playlists are retrieved.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of playlists retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Playlist"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User does not exist or no playlists found"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
         }
-      },
-      "security": [
-        {
-          "bearerAuth": []
-        }
-      ]
-    }
-  },
-  "/users/get-friends-recent-addition-counts/": {
-    "get": {
-      "tags": [
-        "User",
-        "Friend",
-        "Chart"
-      ],
-      "summary": "Retrieve the count of songs added by a specific friend over the last five days, considering their data sharing consent.",
-      "parameters": [
-        {
-          "name": "friend_id",
-          "in": "query",
-          "description": "Unique identifier of the friend whose recent song addition count is to be retrieved.",
+      }
+    },
+    "/create-empty-playlist/": {
+      "post": {
+        "tags": ["Playlist"],
+        "summary": "Create a new empty playlist",
+        "description": "Creates a new playlist for the user with a given name and optional description.",
+        "parameters": [
+        ],
+        "requestBody": {
           "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Successful response with a count of songs added by the friend over the most recent five days.",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "song_counts": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "date": {
-                          "type": "string",
-                          "format": "date"
-                        },
-                        "count": {
-                          "type": "integer"
-                        }
-                      }
-                    }
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the new playlist"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "A description for the new playlist, can be null"
                   }
-                },
-                "example": {
-                  "song_counts": [
-                    {"date": "01-01", "count": 3},
-                    {"date": "02-01", "count": 2},
-                    {"date": "03-01", "count": 4},
-                    {"date": "04-01", "count": 1},
-                    {"date": "05-01", "count": 0}
-                  ]
                 }
               }
             }
           }
         },
-        "400": {
-          "description": "Invalid parameters or user does not share data."
-        },
-        "404": {
-          "description": "User not found."
-        },
-        "500": {
-          "description": "Internal server error."
+        "responses": {
+          "201": { "description": "Playlist created successfully" },
+          "400": { "description": "Missing parameters" },
+          "404": { "description": "User does not exist" },
+          "405": { "description": "Method not allowed" },
+          "500": { "description": "Unexpected error" }
         }
-      },
-      "security": [
-        {
-          "bearerAuth": []
+      }
+    },
+    "/add-song-to-playlist/": {
+      "get": {
+        "tags": ["Playlist"],
+        "summary": "Add a song to a playlist",
+        "description": "Adds a specific song to a specified playlist.",
+        "parameters": [
+          {
+            "name": "playlist_id",
+            "in": "query",
+            "description": "The unique identifier of the playlist",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Song added to playlist successfully" },
+          "400": { "description": "Missing parameters" },
+          "404": { "description": "Playlist or Song does not exist" },
+          "405": { "description": "Method not allowed" },
+          "500": { "description": "Unexpected error" }
         }
-      ]
+      }
+    },
+    "/remove-song-from-playlist/": {
+      "get": {
+        "tags": ["Playlist"],
+        "summary": "Remove a song from a playlist",
+        "description": "Removes a specific song from a specified playlist.",
+        "parameters": [
+          {
+            "name": "playlist_id",
+            "in": "query",
+            "description": "The unique identifier of the playlist",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "song_id",
+            "in": "query",
+            "description": "The unique identifier of the song",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Song removed from playlist successfully" },
+          "400": { "description": "Missing parameters" },
+          "404": { "description": "Playlist or Song does not exist" },
+          "405": { "description": "Method not allowed" },
+          "500": { "description": "Unexpected error" }
+        }
+      }
+    },
+    "/delete-playlist/": {
+      "get": {
+        "tags": ["Playlist"],
+        "summary": "Delete a playlist",
+        "description": "Deletes a specified playlist.",
+        "parameters": [
+          {
+            "name": "playlist_id",
+            "in": "query",
+            "description": "The unique identifier of the playlist to be deleted",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Playlist deleted successfully" },
+          "400": { "description": "Missing parameters" },
+          "404": { "description": "Playlist does not exist" },
+          "405": { "description": "Method not allowed" },
+          "500": { "description": "Unexpected error" }
+        }
+      }
     }
-  }
 
 
 
@@ -3343,6 +3509,67 @@
             "maxLength": 300,
             "nullable": true
           }
+        }
+      },
+      "Playlist": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Primary key identifier for the Playlist"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the playlist"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the playlist"
+          },
+          "songs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Song"
+            },
+            "description": "List of songs in the playlist"
+          },
+          "user_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "User ID of the playlist owner"
+          },
+          "friend_group_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Friend group ID associated with the playlist"
+          }
+        },
+        "required": ["id", "name"],
+        "example": {
+          "id": 123,
+          "name": "Summer Hits",
+          "description": "A playlist of summer hits",
+          "songs": [
+            {
+              "id": 1,
+              "name": "Song 1",
+              "release_year": 2020,
+              "tempo": "Medium",
+              "duration": "3:45",
+              "recorded_environment": "Studio",
+              "mood": "Happy",
+              "img_url": "http://example.com/song1.jpg",
+              "version": "Original",
+              "genres": ["Pop", "Dance"],
+              "artists": ["Artist 1", "Artist 2"],
+              "albums": ["Album 1"]
+            }
+          ],
+          "user_id": 456,
+          "friend_group_id": 789
         }
       },
       "UserSongRating": {

@@ -1,17 +1,18 @@
 import random
 import time
 from typing import Tuple, List
-from django.db.models import Model
+from django.db.models import Model, Count, Sum
 import requests
 from bs4 import BeautifulSoup
 import os
 import spotipy
+from users.models import User, UserSongRating
 
 from songs.models import (Album, Artist,
                           Genre, Mood,
                           RecordedEnvironment,
                           Song, Tempo,
-                          Instrument)
+                          Instrument, Playlist,)
 
 from spotipy.oauth2 import SpotifyClientCredentials
 
@@ -305,3 +306,94 @@ def addArtistsToSongsWithoutArtists():
             print(f"Exception {str(e)}")
 
     return print('message: Songs added successfully')
+
+
+def serializePlaylist(playlist: Playlist):
+    return {
+        'id': playlist.id,
+        'name': playlist.name,
+        'description': playlist.description,
+        'songs': [serializeSong(song) for song in playlist.songs.all()],
+        'user_id': playlist.user.id if playlist.user is not None else None,
+        'friend_group_id': playlist.friend_group.id if playlist.friend_group is not None else None,
+    }
+
+
+def serializeSong(song: Song):
+    return {
+        'id': song.id,
+        'name': song.name,
+        'release_year': song.release_year,
+        'tempo': song.tempo,
+        'duration': song.duration,
+        'recorded_environment': song.recorded_environment,
+        'mood': song.mood,
+        'img_url': song.img_url,
+        'version': song.version,
+        'genres': [genre.name for genre in song.genres.all()],
+        'artists': [artist.name for artist in song.artists.all()],
+        'albums': [album.name for album in song.albums.all()],
+    }
+
+
+def serializeSongExtended(song: Song):
+    genres = song.genres.all()
+    genre_names = [genre.name for genre in genres]
+
+    artists = song.artists.all()
+    artist_names = [artist.name for artist in artists]
+
+    albums = song.albums.all()
+    album_names = [album.name for album in albums]
+
+    instruments = song.instruments.all()
+    instrument_names = [instrument.name for instrument in instruments]
+
+    tempo_long_form = dict(Tempo.choices)[song.tempo]
+    mood_long_form = dict(Mood.choices)[song.mood]
+    recorded_environment_long_form = dict(RecordedEnvironment.choices)[song.recorded_environment]
+
+    data = {
+        'id': song.id,
+        'name': song.name,
+        'genres': genre_names,
+        'artists': artist_names,
+        'albums': album_names,
+        'instruments': instrument_names,
+        'release_year': song.release_year,
+        'duration': song.duration.total_seconds(),
+        'tempo': tempo_long_form,
+        'mood': mood_long_form,
+        'recorded_environment': recorded_environment_long_form,
+        'replay_count': song.replay_count,
+        'version': song.version,
+        'img_url': song.img_url
+    }
+    return data
+
+
+def serializeSongExtendedWithRating(song: Song, user: User):
+    data = serializeSongExtended(song)
+
+    rating_aggregation = UserSongRating.objects.filter(song=song).aggregate(
+        total_ratings=Count('rating'),
+        sum_ratings=Sum('rating')
+    )
+    total_ratings = rating_aggregation['total_ratings']
+    sum_ratings = rating_aggregation['sum_ratings']
+
+    if total_ratings > 0:
+        average_rating = sum_ratings / total_ratings
+    else:
+        average_rating = 0
+    try:
+        user_rating = UserSongRating.objects.filter(user=user, song=song).first()
+        if user_rating is not None:
+            user_rating = user_rating.rating
+    except UserSongRating.DoesNotExist:
+        user_rating = 0
+
+    data['average_rating'] = round(average_rating, 2)
+    data['user_rating'] = round(user_rating, 2)
+
+    return data
