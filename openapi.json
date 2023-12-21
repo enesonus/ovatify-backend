@@ -19,6 +19,10 @@
 
     {
       "url": "https://ovatify-backend-dev.fly.dev/"
+    },
+
+    {
+      "url": "http://localhost:8000/"
     }
   ],
   "tags": [
@@ -3120,17 +3124,27 @@
         ]
       }
     },
-    "/users/get_playlists/": {
+    "/users/get-playlists/": {
       "get": {
         "tags": ["Playlist"],
         "summary": "Retrieve playlists for a user",
-        "description": "Fetches all playlists associated with a given user ID.",
+        "description": "Fetches all playlists associated with a given user ID. The number of playlists retrieved can be specified.",
         "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "number_of_playlists",
             "in": "query",
-            "description": "The number of playlists to retrieve. If not specified, all playlists are retrieved.",
+            "default": "10",
             "required": false,
+            "description": "The number of playlists to retrieve.",
             "schema": {
               "type": "integer"
             }
@@ -3147,7 +3161,33 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Playlist"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "song_imgs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "url"
+                            }
+                          },
+                          "user_id": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "friend_group_id": {
+                            "type": "integer",
+                            "nullable": true
+                          }
+                        }
                       }
                     },
                     "count": {
@@ -3159,20 +3199,196 @@
             }
           },
           "404": {
-            "description": "User does not exist or no playlists found"
+            "description": "User does not exist"
           },
           "500": {
             "description": "Unexpected error"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-playlist-by-id/": {
+      "get": {
+        "tags": ["Playlist"],
+        "summary": "Retrieve a specific playlist for a user by its ID",
+        "description": "Fetches detailed information about a specific playlist using its unique ID.",
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "playlist_id",
+            "in": "query",
+            "required": true,
+            "description": "The unique identifier of the playlist to be retrieved",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Playlist retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "playlist": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "songs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "release_year": {
+                                "type": "integer"
+                              },
+                              "img_url": {
+                                "type": "string",
+                                "format": "url"
+                              },
+                              "main_artist": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "user_id": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "friend_group_id": {
+                          "type": "integer",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "Playlist does not exist"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/users/create-empty-playlist/": {
       "post": {
         "tags": ["Playlist"],
         "summary": "Create a new empty playlist",
-        "description": "Creates a new playlist for the user with a given name and optional description.",
+        "description": "Creates a new empty playlist for the user. Description and name are optional, if not provided a default name and description will be generated.",
         "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the new playlist. If not provided, a default name will be generated."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "A description for the new playlist. If not provided, defaults to an empty string.",
+                    "nullable": true,
+                    "default": ""
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Playlist created successfully"
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "User does not exist"
+          },
+          "405": {
+            "description": "Method not allowed"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/add-song-to-playlist/": {
+      "post": {
+        "tags": ["Playlist"],
+        "summary": "Add a song to a playlist",
+        "description": "Adds a specific song to a specified playlist based on their unique identifiers.",
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
@@ -3181,111 +3397,213 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "playlist_id": {
                     "type": "string",
-                    "description": "The name of the new playlist"
+                    "description": "The unique identifier of the playlist"
                   },
-                  "description": {
+                  "song_id": {
                     "type": "string",
-                    "description": "A description for the new playlist, can be null"
+                    "description": "The unique identifier of the song"
                   }
-                }
+                },
+                "required": ["playlist_id", "song_id"]
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Playlist created successfully" },
-          "400": { "description": "Missing parameters" },
-          "404": { "description": "User does not exist" },
-          "405": { "description": "Method not allowed" },
-          "500": { "description": "Unexpected error" }
-        }
+          "200": {
+            "description": "Song added to playlist successfully"
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "Playlist or Song does not exist"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
-    "/users/add-song-to-playlist/": {
-      "get": {
+    "/users/edit-playlist/": {
+      "put": {
         "tags": ["Playlist"],
-        "summary": "Add a song to a playlist",
-        "description": "Adds a specific song to a specified playlist.",
+        "summary": "Edit a playlist",
+        "description": "Updates the details of an existing playlist, identified by its unique ID. Allows editing the playlist name and description.",
         "parameters": [
           {
-            "name": "playlist_id",
-            "in": "query",
-            "description": "The unique identifier of the playlist",
+            "name": "userid",
+            "in": "path",
             "required": true,
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "song_id",
-            "in": "query",
-            "description": "The unique identifier of the song",
-            "required": true,
-            "schema": { "type": "string" }
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "playlist_id": {
+                    "type": "string",
+                    "description": "The unique identifier of the playlist"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The new name of the playlist"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The new description of the playlist"
+                  }
+                },
+                "required": ["playlist_id"]
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Song added to playlist successfully" },
-          "400": { "description": "Missing parameters" },
-          "404": { "description": "Playlist or Song does not exist" },
-          "405": { "description": "Method not allowed" },
-          "500": { "description": "Unexpected error" }
-        }
+          "200": {
+            "description": "Playlist edited successfully"
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "Playlist does not exist"
+          },
+          "405": {
+            "description": "Method not allowed"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/users/remove-song-from-playlist/": {
-      "get": {
+      "delete": {
         "tags": ["Playlist"],
         "summary": "Remove a song from a playlist",
-        "description": "Removes a specific song from a specified playlist.",
+        "description": "Removes a specific song from a specified playlist, identified by their unique IDs.",
         "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "playlist_id",
             "in": "query",
-            "description": "The unique identifier of the playlist",
             "required": true,
-            "schema": { "type": "string" }
+            "description": "The unique identifier of the playlist",
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "song_id",
             "in": "query",
-            "description": "The unique identifier of the song",
             "required": true,
-            "schema": { "type": "string" }
+            "description": "The unique identifier of the song",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Song removed from playlist successfully" },
-          "400": { "description": "Missing parameters" },
-          "404": { "description": "Playlist or Song does not exist" },
-          "405": { "description": "Method not allowed" },
-          "500": { "description": "Unexpected error" }
-        }
+          "200": {
+            "description": "Song removed from playlist successfully"
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "Playlist or Song does not exist"
+          },
+          "405": {
+            "description": "Method not allowed"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
-    },
+    },    
     "/users/delete-playlist/": {
-      "get": {
+      "delete": {
         "tags": ["Playlist"],
         "summary": "Delete a playlist",
-        "description": "Deletes a specified playlist.",
+        "description": "Deletes a specified playlist, identified by its unique ID.",
         "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the user",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "playlist_id",
             "in": "query",
-            "description": "The unique identifier of the playlist to be deleted",
             "required": true,
-            "schema": { "type": "string" }
+            "description": "The unique identifier of the playlist to be deleted",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Playlist deleted successfully" },
-          "400": { "description": "Missing parameters" },
-          "404": { "description": "Playlist does not exist" },
-          "405": { "description": "Method not allowed" },
-          "500": { "description": "Unexpected error" }
-        }
+          "200": {
+            "description": "Playlist deleted successfully"
+          },
+          "400": {
+            "description": "Missing parameters"
+          },
+          "404": {
+            "description": "Playlist does not exist"
+          },
+          "405": {
+            "description": "Method not allowed"
+          },
+          "500": {
+            "description": "Unexpected error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
-    }
+    }    
 
 
 

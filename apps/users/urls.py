@@ -58,8 +58,10 @@ urlpatterns = [
     path('get-friends-favorite-tempos/', views.get_friends_favorite_tempos, name='get-friends-favorite-tempos'),
     path('get-friends-recent-addition-counts/', views.get_friends_recent_addition_by_count, name='get-friends-recent-addition-count'),
     path('get-playlists/', views.get_playlists, name='get_playlists'),
+    path('get-playlist-by-id/', views.get_playlist_by_id, name='get_playlist_by_id'),
     path('add-song-to-playlist/', views.add_song_to_playlist, name='add_song_to_playlist'),
     path('remove-song-from-playlist/', views.remove_song_from_playlist, name='remove_song_from_playlist'),
     path('create-empty-playlist/', views.create_empty_playlist, name='create_empty_playlist'),
     path('delete-playlist/', views.delete_playlist, name='delete_playlist'),
+    path('edit-playlist/', views.edit_playlist, name='edit_playlist'),
 ]

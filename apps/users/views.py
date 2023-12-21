@@ -12,11 +12,28 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 import spotipy
-from songs.utils import serializePlaylist, serializePlaylistMinimum
+from songs.utils import serializePlaylist, serializePlaylistInfo
 from users.utils import recommendation_creator
-from songs.models import Playlist, Song, Genre, Mood, Tempo, GenreSong, ArtistSong, Artist, AlbumSong, Album, InstrumentSong, RecordedEnvironment, Instrument
-from users.models import User, UserPreferences, UserSongRating, Friend, FriendRequest, RequestStatus
-from users.utils import get_recommendations, getFavoriteGenres, getFavoriteSongs, getFavoriteArtists, getFavoriteMoods, getFavoriteTempos, available_genre_seeds
+from songs.models import (Playlist, Song,
+                          Genre, Mood, Tempo,
+                          GenreSong, ArtistSong,
+                          Artist, AlbumSong, Album,
+                          InstrumentSong,
+                          RecordedEnvironment,
+                          Instrument,
+                          )
+from users.models import (User, UserPreferences,
+                          UserSongRating, Friend,
+                          FriendRequest,
+                          RequestStatus,
+                          )
+from users.utils import (get_recommendations,
+                         getFavoriteGenres,
+                         getFavoriteSongs,
+                         getFavoriteArtists,
+                         getFavoriteMoods,
+                         getFavoriteTempos,
+                         )
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import random
@@ -1946,7 +1963,6 @@ def get_friends_recent_addition_by_count(request, userid):
 @csrf_exempt
 @token_required
 def get_playlists(request, userid):
-    # TODO: Waiting Akif
     if request.method != 'GET':
         return HttpResponse(status=405)
     try:
@@ -1960,20 +1976,44 @@ def get_playlists(request, userid):
         if user is None:
             return JsonResponse({'error': 'User does not exist'}, status=404)
 
-        playlists = user.playlists.all()
+        playlists = user.playlists.order_by('-created_at').all()
 
         if len(playlists) > count:
             playlists = playlists[:count]
 
         data = []
         for playlist in playlists:
-            serialized_pl = serializePlaylistMinimum(playlist)
+            serialized_pl = serializePlaylistInfo(playlist)
             data.append(serialized_pl)
         return JsonResponse({'items': data, 'count': len(data)}, status=200)
     except Exception as e:
         return JsonResponse({'Unexpected error': str(e)}, status=500)
 
 
+@csrf_exempt
+@token_required
+def get_playlist_by_id(request, userid):
+    if request.method != 'GET':
+        return HttpResponse(status=405)
+    try:
+        data = request.GET
+        playlist_id = data.get('playlist_id')
+        if playlist_id is None:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+
+        playlist = Playlist.objects.filter(id=playlist_id).first()
+
+        if playlist is None:
+            return JsonResponse({'error': 'Playlist does not exist'}, status=404)
+
+        serialized_pl = serializePlaylist(playlist)
+        return JsonResponse({'playlist': serialized_pl}, status=200)
+    except Exception as e:
+        return JsonResponse({'Unexpected error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
 def add_song_to_playlist(request, userid):
     if request.method != 'POST':
         return HttpResponse(status=405)
@@ -1993,14 +2033,14 @@ def add_song_to_playlist(request, userid):
             return JsonResponse({'error': 'Song does not exist'}, status=404)
 
         playlist.songs.add(song)
-        return JsonResponse({'message':
-                            f'Song {song.name} added to playlist {playlist.name} successfully'},
-                            status=200)
+        return JsonResponse({'message': f'{song.name} is added to playlist {playlist.name}'},status=200)
 
     except Exception as e:
         return JsonResponse({'Unexpected error': str(e)}, status=500)
 
 
+@csrf_exempt
+@token_required
 def remove_song_from_playlist(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
@@ -2028,6 +2068,8 @@ def remove_song_from_playlist(request, userid):
         return JsonResponse({'Unexpected error': str(e)}, status=500)
 
 
+@csrf_exempt
+@token_required
 def create_empty_playlist(request, userid):
     if request.method != 'POST':
         return HttpResponse(status=405)
@@ -2038,25 +2080,25 @@ def create_empty_playlist(request, userid):
         if description is None:
             description = ''
 
-        if name is None:
-            return JsonResponse({'error': 'Missing parameters'}, status=400)
-
         user = User.objects.filter(id=userid).first()
 
         if user is None:
             return JsonResponse({'error': 'User does not exist'}, status=404)
 
-        playlist = Playlist.objects.create(name=name,
-                                           description=description,
-                                           user=user)
-        serialized_pl = serializePlaylist(playlist)
-        return JsonResponse({'message': 'Playlist created successfully',
-                             'playlist': serialized_pl},
+        if name is None:
+            name = f"Playlist #{user.playlists.count() + 1}"
+
+        p = Playlist.objects.create(name=name,
+                                    description=description,
+                                    user=user)
+        return JsonResponse({'message': f'Playlist {p.name} created succesfully'},
                             status=201)
     except Exception as e:
         return JsonResponse({'Unexpected error': str(e)}, status=500)
 
 
+@csrf_exempt
+@token_required
 def delete_playlist(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
@@ -2074,6 +2116,40 @@ def delete_playlist(request, userid):
 
         playlist.delete()
         return JsonResponse({'message': 'Playlist deleted successfully'},
+                            status=200)
+    except Exception as e:
+        return JsonResponse({'Unexpected error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def edit_playlist(request, userid):
+    if request.method != 'PUT':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body)
+        playlist_id = data.get('playlist_id')
+        name = data.get('name')
+        description = data.get('description')
+
+        if playlist_id is None:
+            return JsonResponse({'error': 'Missing playlist_id'}, status=400)
+
+        playlist = Playlist.objects.filter(id=playlist_id).first()
+
+        if playlist is None:
+            return JsonResponse({'error': 'Playlist does not exist'},
+                                status=404)
+
+        if description is not None:
+            playlist.description = description
+        if name is not None:
+            playlist.name = name
+
+        playlist.save()
+        serialized_pl = serializePlaylistInfo(playlist)
+        return JsonResponse({'message': 'Playlist edited successfully',
+                             'playlist': serialized_pl},
                             status=200)
     except Exception as e:
         return JsonResponse({'Unexpected error': str(e)}, status=500)
