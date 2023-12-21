@@ -3131,15 +3131,6 @@
         "description": "Fetches all playlists associated with a given user ID. The number of playlists retrieved can be specified.",
         "parameters": [
           {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "number_of_playlists",
             "in": "query",
             "default": "10",
@@ -3218,15 +3209,6 @@
         "summary": "Retrieve a specific playlist for a user by its ID",
         "description": "Fetches detailed information about a specific playlist using its unique ID.",
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "playlist_id",
             "in": "query",
@@ -3319,15 +3301,6 @@
         "summary": "Create a new empty playlist",
         "description": "Creates a new empty playlist for the user. Description and name are optional, if not provided a default name and description will be generated.",
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "requestBody": {
           "content": {
@@ -3380,15 +3353,6 @@
         "summary": "Add a song to a playlist",
         "description": "Adds a specific song to a specified playlist based on their unique identifiers.",
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "requestBody": {
           "required": true,
@@ -3438,15 +3402,6 @@
         "summary": "Edit a playlist",
         "description": "Updates the details of an existing playlist, identified by its unique ID. Allows editing the playlist name and description.",
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "requestBody": {
           "required": true,
@@ -3504,15 +3459,6 @@
         "description": "Removes a specific song from a specified playlist, identified by their unique IDs.",
         "parameters": [
           {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "playlist_id",
             "in": "query",
             "required": true,
@@ -3561,15 +3507,6 @@
         "summary": "Delete a playlist",
         "description": "Deletes a specified playlist, identified by its unique ID.",
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "Unique identifier of the user",
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "playlist_id",
             "in": "query",
