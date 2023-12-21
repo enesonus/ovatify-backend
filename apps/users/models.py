@@ -56,7 +56,7 @@ class Friend(CoreModel):
 
 
 class FriendGroup(CoreModel):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, default="New Friend Group")
     description = models.CharField(max_length=500,
                                    blank=True, null=True)
     img_url = models.URLField(max_length=300,
