@@ -1,18 +1,16 @@
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 import logging
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Sum, Q
-from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
 from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info, \
     getFirstRelatedSong
-from songs.models import (Instrument, Mood, RecordedEnvironment,
-                          Song, Artist, Album, ArtistSong,
-                          AlbumSong, Genre, GenreSong, Tempo)
+from songs.models import (Mood, RecordedEnvironment,
+                          Song, Artist, Album, Genre, Tempo)
 from spotipy.oauth2 import SpotifyClientCredentials
 from users.models import User, UserSongRating
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
@@ -51,17 +49,17 @@ def search_db(request, userid):
             similarity=TrigramSimilarity('name', search_string) +
                        TrigramSimilarity('albums__name', search_string) +
                        TrigramSimilarity('artists__name', search_string)
-        )
-
-        # Filter songs based on combined rank and similarity
-        songs = songs.filter(
+        ).filter(
             Q(rank__gte=0.4) | 
             Q(similarity__gt=0.4)
-        ).order_by('-rank', '-similarity')
+        ).distinct('id')
+
+        # Sort the results in Python to maintain the desired order
+        sorted_songs = sorted(songs, key=lambda x: (-x.rank, -x.similarity))
 
         # Convert the sorted list to a list of song dictionaries for JsonResponse
         songs_info = []
-        for song in songs:
+        for song in sorted_songs:
             song_info = {
                 'spotify_id': song.id,
                 'track_name': song.name,
