@@ -1,13 +1,16 @@
 from collections import Counter
 import json
-
+import base64
 import math
 import random
 from django.core import serializers
-
-from songs.models import Mood, Tempo, Genre, Song, Artist
+from songs.models import Mood, Tempo, Genre, Song, Artist, Playlist 
 from users.models import User, FriendGroup
-
+from django.http import JsonResponse
+from spotipy.oauth2 import SpotifyOAuth
+import secrets
+import base64
+import hashlib
 
 def getFavoriteSongs(userid: str, number_of_songs: int):
     if number_of_songs < -1 or number_of_songs == 0:
@@ -260,3 +263,8 @@ def serializeFriendGroupExtended(friend_group: FriendGroup):
         'members': [{'id': member.id, 'username': member.username, 'img_url': member.img_url}
                     for member in friend_group.friends.all()]
     }
+
+def generate_pkce_pair():
+    code_verifier = secrets.token_urlsafe(128)[:128]
+    code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).decode('utf-8').replace("=", "")
+    return code_verifier, code_challenge

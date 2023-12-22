@@ -74,5 +74,6 @@ urlpatterns = [
     path('get-playlists-of-group/', views.get_playlists_of_group, name='get-playlists-of-group'),
     path('create-empty-playlist-in-group/', views.create_empty_playlist_in_group, name='create-empty-playlist-in-group'),
     path('delete-playlist-from-group/', views.delete_playlist_from_group, name='delete-playlist-from-group'),
+    path('import-playlist-to-spotify/', views.import_playlist_to_spotify, name='import-playlist-to-spotify'),
 
 ]

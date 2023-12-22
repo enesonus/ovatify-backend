@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from OVTF_Backend.firebase_auth import token_required
 import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 from songs.utils import serializePlaylist, serializePlaylistInfo
 from users.utils import recommendation_creator, serializeFriendGroupSimple, serializeFriendGroupExtended
 from songs.models import (Playlist, Song,
@@ -2425,3 +2426,73 @@ def delete_playlist_from_group(request, userid):
     except Exception as e:
         logging.error(f"error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def import_playlist_to_spotify(request, userid):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = json.loads(request.body, encoding='utf-8')
+            playlist_id = data.get('playlist_id')
+            playlist_name = data.get('playlist_name', 'My Ovatify Playlist')
+            playlist_description = data.get('playlist_description', 'Playlist created by Ovatify')
+            user_spotify_id = data.get('user_spotify_id')
+
+            user_playlist = Playlist.objects.get(id=playlist_id)
+
+            sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=os.getenv('SPOTIPY_CLIENT_ID'),
+                                                           client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'),
+                                                           redirect_uri=os.getenv('SPOTIPY_REDIRECT_URI'),
+                                                           scope='playlist-modify-public playlist-modify-private'))
+
+            # Get user's Spotify ID
+
+            user_spotify_id = sp.me()['id']
+
+            # Create Spotify playlist
+            created_playlist = sp.user_playlist_create(user_spotify_id, playlist_name, public=False, description=playlist_description)
+            spotify_playlist_id = created_playlist['id']
+
+            # Generate track URIs
+            track_uris = [f'spotify:track:{song.id}' for song in user_playlist.songs.all()]
+
+            if track_uris:
+                sp.playlist_add_items(spotify_playlist_id, track_uris)
+
+            return JsonResponse({'message': 'Playlist imported successfully to Spotify', 'spotify_playlist_id': spotify_playlist_id}, status=200)
+        
+    except spotipy.SpotifyException as e:
+        if "The access token expired" in str(e):
+            # Token expired, refresh it
+            sp.auth_manager.get_access_token(as_dict=True)
+
+            # Retry the operation that caused the token expiration
+        try:
+            # Retry the operation here
+            # For example, you might want to get the user's playlist again
+            user_playlist = Playlist.objects.get(id=playlist_id)
+
+            # Retry creating the Spotify playlist
+            created_playlist = sp.user_playlist_create(user_spotify_id, playlist_name, public=False, description=playlist_description)
+            spotify_playlist_id = created_playlist['id']
+
+            # Retry adding track URIs
+            track_uris = [f'spotify:track:{song.id}' for song in user_playlist.songs.all()]
+
+            if track_uris:
+                sp.playlist_add_items(spotify_playlist_id, track_uris)
+
+            return JsonResponse({'message': 'Playlist imported successfully to Spotify', 'spotify_playlist_id': spotify_playlist_id}, status=200)
+
+        except Exception as retry_error:
+            logging.error(f"Retry operation failed: {str(retry_error)}")
+            return JsonResponse({'error': 'Retry operation failed'}, status=500)
+
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': 'KeyError occurred'}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
