@@ -4463,8 +4463,7 @@
             "description": "Friend group ID associated with the playlist"
           }
         },
-        "required": ["id", "name"],
-
+        "required": ["id", "name"]
       },
       "UserSongRating": {
         "type": "object",
