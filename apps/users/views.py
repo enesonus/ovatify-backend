@@ -1976,7 +1976,7 @@ def get_playlists(request, userid):
         if user is None:
             return JsonResponse({'error': 'User does not exist'}, status=404)
 
-        playlists = user.playlists.order_by('-created_at').all()
+        playlists = user.playlists.order_by('-updated_at').all()
 
         if len(playlists) > count:
             playlists = playlists[:count]
@@ -2032,6 +2032,10 @@ def add_song_to_playlist(request, userid):
         if song is None:
             return JsonResponse({'error': 'Song does not exist'}, status=404)
 
+        if song in playlist.songs.all():
+            return JsonResponse({'error': f'{song.name} already exists in playlist {playlist.name}'}
+                                , status=400)
+
         playlist.songs.add(song)
         return JsonResponse({'message': f'{song.name} is added to playlist {playlist.name}'},status=200)
 
@@ -2059,6 +2063,10 @@ def remove_song_from_playlist(request, userid):
             return JsonResponse({'error': 'Playlist does not exist'}, status=404)
         if song is None:
             return JsonResponse({'error': 'Song does not exist'}, status=404)
+
+        if song not in playlist.songs.all():
+            return JsonResponse({'error': f'{song.name} does not exist in playlist {playlist.name}'},
+                                status=400)
 
         playlist.songs.remove(song)
         return JsonResponse({'message':
