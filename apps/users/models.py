@@ -90,4 +90,12 @@ class FriendRequest(CoreModel):
     class Meta:
         unique_together = (("sender", "receiver"),)
 
+class SuggestionNotification(CoreModel):
+    id = models.AutoField(primary_key=True)
+    receiver = models.ForeignKey(User, related_name='notification_receiver', on_delete=models.CASCADE)
+    suggester = models.ForeignKey(User, related_name='notification_suggester', on_delete=models.CASCADE)
+    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+    is_seen = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"{self.receiver.username} - Suggested by {self.suggester.username} - {self.song.name}"
