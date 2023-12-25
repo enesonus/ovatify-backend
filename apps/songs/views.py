@@ -9,8 +9,9 @@ import spotipy
 from OVTF_Backend.firebase_auth import token_required
 from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info, \
     getFirstRelatedSong
-from songs.models import (Mood, RecordedEnvironment,
-                          Song, Artist, Album, Genre, Tempo)
+from songs.models import (Instrument, Mood, RecordedEnvironment,
+                          Song, Artist, Album, ArtistSong,
+                          AlbumSong, Genre, GenreSong, Tempo, Playlist, PlaylistSong)
 from spotipy.oauth2 import SpotifyClientCredentials
 from users.models import User, UserSongRating
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
@@ -509,7 +510,7 @@ def get_random_genres(request, userid):
     
 @csrf_exempt
 @token_required
-def search_artists(request):
+def search_artists(request,userid):
     if request.method == 'GET':
         search_text = request.GET.get('search_text', '')
 
@@ -529,8 +530,9 @@ def search_artists(request):
 
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
-    
-def search_genres(request):
+@csrf_exempt
+@token_required
+def search_genres(request,userid):
     if request.method == 'GET':
         search_text = request.GET.get('search_text', '')
 
@@ -552,7 +554,7 @@ def search_genres(request):
     
 @csrf_exempt
 @token_required
-def get_all_moods(request):
+def get_all_moods(request,userid):
     if request.method == 'GET':
         moods = [{'value': mood.value, 'label': mood.label} for mood in Mood.choices]
         return JsonResponse({'message': 'All moods', 'moods': moods}, status=200)
@@ -561,7 +563,7 @@ def get_all_moods(request):
 
 @csrf_exempt
 @token_required
-def get_all_tempos(request):
+def get_all_tempos(request,userid):
     if request.method == 'GET':
         tempos = [{'value': tempo.value, 'label': tempo.label} for tempo in Tempo.choices]
         return JsonResponse({'message': 'All tempos', 'tempos': tempos}, status=200)
@@ -571,7 +573,7 @@ def get_all_tempos(request):
 
 @csrf_exempt
 @token_required
-def get_banger_songs(request):
+def get_banger_songs(request,userid):
     if request.method == 'GET':
         data = request.GET  # Use GET instead of POST for query parameters
 
@@ -613,3 +615,39 @@ def get_banger_songs(request):
 
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
+
+@csrf_exempt
+@token_required
+def save_playlist(request, userid):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            user = User.objects.get(id=userid) 
+
+            playlist = Playlist.objects.create(
+                name=data['name'],
+                description=data['description'],
+                user=user
+            )
+
+            songs_data = data.get('songs', [])
+            for song_id in songs_data:
+                song = Song.objects.get(id=song_id)
+                
+                playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+                playlist.songs.add(playlist_song)
+
+            playlist.save()
+
+            return JsonResponse({'playlist_id': playlist.id}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'One or more songs not found'}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
