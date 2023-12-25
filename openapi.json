@@ -16,11 +16,9 @@
     {
       "url": "https://ovatify-backend.fly.dev/"
     },
-
     {
       "url": "https://ovatify-backend-dev.fly.dev/"
     },
-
     {
       "url": "http://localhost:8000/"
     }
@@ -2151,38 +2149,53 @@
           "200": {
             "description": "Successful retrieval of song addition counts per day.",
             "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "song_counts": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "date": {
-                          "type": "string",
-                          "format": "date"
-                        },
-                        "count": {
-                          "type": "integer"
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "song_counts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
                         }
                       }
                     }
+                  },
+                  "example": {
+                    "song_counts": [
+                      {
+                        "date": "01-01",
+                        "count": 3
+                      },
+                      {
+                        "date": "02-01",
+                        "count": 2
+                      },
+                      {
+                        "date": "03-01",
+                        "count": 4
+                      },
+                      {
+                        "date": "04-01",
+                        "count": 1
+                      },
+                      {
+                        "date": "05-01",
+                        "count": 0
+                      }
+                    ]
                   }
-                },
-                "example": {
-                  "song_counts": [
-                    {"date": "01-01", "count": 3},
-                    {"date": "02-01", "count": 2},
-                    {"date": "03-01", "count": 4},
-                    {"date": "04-01", "count": 1},
-                    {"date": "05-01", "count": 0}
-                  ]
                 }
               }
             }
-          }
           },
           "404": {
             "description": "User does not exist."
@@ -3108,11 +3121,26 @@
                   },
                   "example": {
                     "song_counts": [
-                      {"date": "01-01", "count": 3},
-                      {"date": "02-01", "count": 2},
-                      {"date": "03-01", "count": 4},
-                      {"date": "04-01", "count": 1},
-                      {"date": "05-01", "count": 0}
+                      {
+                        "date": "01-01",
+                        "count": 3
+                      },
+                      {
+                        "date": "02-01",
+                        "count": 2
+                      },
+                      {
+                        "date": "03-01",
+                        "count": 4
+                      },
+                      {
+                        "date": "04-01",
+                        "count": 1
+                      },
+                      {
+                        "date": "05-01",
+                        "count": 0
+                      }
                     ]
                   }
                 }
@@ -3136,9 +3164,82 @@
         ]
       }
     },
+    "/users/suggest-song/": {
+      "post": {
+        "tags": [
+          "User",
+          "Friend",
+          "Recommendation"
+        ],
+        "summary": "Send a friend of yours a song that you would like recommend. Your friend will receive a notification based on the recommended song in his notification bar.",
+        "requestBody": {
+          "description": "Data needed to send a friend a song suggestion.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sender_user": {
+                    "type": "string",
+                    "description": "The username of the sender of the song suggestion."
+                  },
+                  "receiver_user": {
+                    "type": "string",
+                    "description": "The username of the receiver of the song suggestion."
+                  },
+                  "song_id": {
+                    "type": "string",
+                    "description": "The ID of the song for the song suggestion."
+                  }
+                },
+                "required": [
+                  "sender_user",
+                  "receiver_user",
+                  "song_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response with returning a message, indicating that it was sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameters, Invalid method or Sending a song to yourself."
+          },
+          "404": {
+            "description": "User not found or Song not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/users/get-playlists/": {
       "get": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Retrieve playlists for a user",
         "description": "Fetches all playlists associated with a given user ID. The number of playlists retrieved can be specified.",
         "parameters": [
@@ -3217,7 +3318,9 @@
     },
     "/users/get-playlist-by-id/": {
       "get": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Retrieve a specific playlist for a user by its ID",
         "description": "Fetches detailed information about a specific playlist using its unique ID.",
         "parameters": [
@@ -3309,11 +3412,12 @@
     },
     "/users/create-empty-playlist/": {
       "post": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Create a new empty playlist",
         "description": "Creates a new empty playlist for the user. Description and name are optional, if not provided a default name and description will be generated.",
-        "parameters": [
-        ],
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3361,11 +3465,12 @@
     },
     "/users/add-song-to-playlist/": {
       "post": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Add a song to a playlist",
         "description": "Adds a specific song to a specified playlist based on their unique identifiers.",
-        "parameters": [
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -3382,7 +3487,10 @@
                     "description": "The unique identifier of the song"
                   }
                 },
-                "required": ["playlist_id", "song_id"]
+                "required": [
+                  "playlist_id",
+                  "song_id"
+                ]
               }
             }
           }
@@ -3410,11 +3518,12 @@
     },
     "/users/edit-playlist/": {
       "put": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Edit a playlist",
         "description": "Updates the details of an existing playlist, identified by its unique ID. Allows editing the playlist name and description.",
-        "parameters": [
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -3435,7 +3544,9 @@
                     "description": "The new description of the playlist"
                   }
                 },
-                "required": ["playlist_id"]
+                "required": [
+                  "playlist_id"
+                ]
               }
             }
           }
@@ -3466,7 +3577,9 @@
     },
     "/users/remove-song-from-playlist/": {
       "delete": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Remove a song from a playlist",
         "description": "Removes a specific song from a specified playlist, identified by their unique IDs.",
         "parameters": [
@@ -3515,7 +3628,9 @@
     },
     "/users/delete-playlist/": {
       "delete": {
-        "tags": ["Playlist"],
+        "tags": [
+          "Playlist"
+        ],
         "summary": "Delete a playlist",
         "description": "Deletes a specified playlist, identified by its unique ID.",
         "parameters": [
@@ -3555,10 +3670,16 @@
     },
     "/users/get-global-all-friend-groups/": {
       "get": {
-        "tags": ["Tests"],
+        "tags": [
+          "Tests"
+        ],
         "summary": "Retrieve all friend groups globally",
         "operationId": "getGlobalAllFriendGroups",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "A list of all friend groups",
@@ -3569,7 +3690,9 @@
                   "properties": {
                     "friend_groups": {
                       "type": "array",
-                      "items": {"$ref": "#/components/schemas/FriendGroupSimple"}
+                      "items": {
+                        "$ref": "#/components/schemas/FriendGroupSimple"
+                      }
                     }
                   }
                 }
@@ -3580,7 +3703,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3589,10 +3714,16 @@
     },
     "/users/create-friend-group/": {
       "post": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Create a new friend group",
         "operationId": "createFriendGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "description": "Data for creating a new friend group, Note: Only name field is required, description field is not required",
           "required": true,
@@ -3609,7 +3740,9 @@
                     "default": ""
                   }
                 },
-                "required": ["name"]
+                "required": [
+                  "name"
+                ]
               }
             }
           }
@@ -3622,8 +3755,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {"type": "string"},
-                    "id": {"type": "string"}
+                    "message": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
                   }
                 }
               }
@@ -3633,7 +3770,9 @@
             "description": "Bad Request - When the required field name for the friend group is not provided.",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3641,7 +3780,9 @@
             "description": "User not found",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3649,7 +3790,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3658,10 +3801,16 @@
     },
     "/users/get-friend-group-by-id/": {
       "get": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Retrieve a friend group by its ID",
         "operationId": "getFriendGroupById",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "group_id",
@@ -3690,7 +3839,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "friend_group": {"$ref": "#/components/schemas/FriendGroupExtended"}
+                    "friend_group": {
+                      "$ref": "#/components/schemas/FriendGroupExtended"
+                    }
                   }
                 }
               }
@@ -3700,7 +3851,9 @@
             "description": "Bad Request - If the id for friend group is not provided.",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3708,7 +3861,9 @@
             "description": "Friend group not found",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3716,7 +3871,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3725,10 +3882,16 @@
     },
     "/users/add-friend-to-group/": {
       "put": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Add a friend to a friend group. Please note that only the admin of a friend group can add new people to it.",
         "operationId": "addFriendToGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "description": "Data needed to add a friend to the group",
           "required": true,
@@ -3746,7 +3909,10 @@
                     "description": "The username of the friend to add"
                   }
                 },
-                "required": ["group_id", "friend_name"]
+                "required": [
+                  "group_id",
+                  "friend_name"
+                ]
               }
             }
           }
@@ -3759,7 +3925,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {"type": "string"}
+                    "message": {
+                      "type": "string"
+                    }
                   }
                 }
               }
@@ -3769,7 +3937,9 @@
             "description": "Bad Request - Missing or invalid parameters, or the admin tries to add itself to the friend group, or the user is already in the friend group.",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3777,7 +3947,9 @@
             "description": "Unauthorized - If the user is not admin, he/she is not authorized to add friends to this group",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3785,7 +3957,9 @@
             "description": "Not Found - Either friend group or friend does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3793,7 +3967,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3802,10 +3978,16 @@
     },
     "/users/remove-friend-from-group/": {
       "put": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Remove a friend from a friend group. Please note that only the admin of a friend group can add new people to it.",
         "operationId": "removeFriendFromGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "description": "Data needed to remove a friend from the group",
           "required": true,
@@ -3823,7 +4005,10 @@
                     "description": "The username of the friend to remove"
                   }
                 },
-                "required": ["group_id", "friend_name"]
+                "required": [
+                  "group_id",
+                  "friend_name"
+                ]
               }
             }
           }
@@ -3836,7 +4021,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {"type": "string"}
+                    "message": {
+                      "type": "string"
+                    }
                   }
                 }
               }
@@ -3846,7 +4033,9 @@
             "description": "Bad Request - Missing or invalid parameters, or the admin tries to remove itself to the friend group, or the user is not in the friend group.",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3854,7 +4043,9 @@
             "description": "Unauthorized - If the user is not admin, he/she is not authorized to remove friends from this group",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3862,7 +4053,9 @@
             "description": "Not Found - Either friend group or friend does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3870,7 +4063,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3879,10 +4074,16 @@
     },
     "/users/delete-friend-group/": {
       "delete": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Delete a friend group. Please note that only the admin of a friend group can delete it.",
         "operationId": "deleteFriendGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "group_id",
@@ -3902,7 +4103,9 @@
             "description": "Bad Request - Missing or invalid group ID",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3910,7 +4113,9 @@
             "description": "Unauthorized - If the user is not admin, he/she is not authorized to delete this friend group",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3918,7 +4123,9 @@
             "description": "Not Found - Friend group or user with the given ID does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3926,7 +4133,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3935,12 +4144,18 @@
     },
     "/users/get-all-friend-groups-of-user/": {
       "get": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Get all friend groups of a user",
         "operationId": "getAllFriendGroupsOfUser",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-         {
+          {
             "name": "extended",
             "in": "query",
             "description": "Flag to determine if extended information is required. If provided with any value(even dummy value works), the response with the member field provided in 200 status code will be returned. If not provided, members field will disappear and remaining fields will be returned Both are represented in the 200 response example, first JSON object in it is when extended flag is not provided, second one is when extended flag is provided.",
@@ -3962,8 +4177,12 @@
                       "type": "array",
                       "items": {
                         "oneOf": [
-                          {"$ref": "#/components/schemas/FriendGroupSimple"},
-                          {"$ref": "#/components/schemas/FriendGroupExtended"}
+                          {
+                            "$ref": "#/components/schemas/FriendGroupSimple"
+                          },
+                          {
+                            "$ref": "#/components/schemas/FriendGroupExtended"
+                          }
                         ]
                       }
                     }
@@ -3976,7 +4195,9 @@
             "description": "Not Found - User does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -3984,7 +4205,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -3993,10 +4216,16 @@
     },
     "/users/get-playlists-of-group/": {
       "get": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Get playlists of a friend group.",
         "operationId": "getPlaylistsOfGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "group_id",
@@ -4018,7 +4247,9 @@
                   "properties": {
                     "playlists": {
                       "type": "array",
-                      "items": {"$ref": "#/components/schemas/Playlist"}
+                      "items": {
+                        "$ref": "#/components/schemas/Playlist"
+                      }
                     }
                   }
                 }
@@ -4029,7 +4260,9 @@
             "description": "Bad Request - Missing or invalid group ID",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4037,7 +4270,9 @@
             "description": "Not Found - Friend group does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4045,7 +4280,9 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
@@ -4054,10 +4291,16 @@
     },
     "/users/create-empty-playlist-in-group/": {
       "post": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Create an empty playlist in a friend group. To create a playlist, the user that issues this request must be a member of the group for which the id is provided in the request body.",
         "operationId": "createEmptyPlaylistInGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "description": "Data needed to create a new empty playlist in a friend group. playlist_description is NOT required.",
           "required": true,
@@ -4080,7 +4323,10 @@
                     "description": "The ID of the friend group where the playlist will be created"
                   }
                 },
-                "required": ["playlist_name", "group_id"]
+                "required": [
+                  "playlist_name",
+                  "group_id"
+                ]
               }
             }
           }
@@ -4093,20 +4339,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {"type": "string"},
-                    "playlist": {"$ref": "#/components/schemas/Playlist"}
+                    "message": {
+                      "type": "string"
+                    },
+                    "playlist": {
+                      "$ref": "#/components/schemas/Playlist"
+                    }
                   },
-                   "example": {
-                  "message": "Playlist created successfully",
-                  "playlist": {
-                    "id": 123,
-                    "name": "Chill Vibes",
-                    "description": "A playlist for relaxing evenings",
-                    "songs": [],
-                    "user_id": null,
-                    "friend_group_id": 789
+                  "example": {
+                    "message": "Playlist created successfully",
+                    "playlist": {
+                      "id": 123,
+                      "name": "Chill Vibes",
+                      "description": "A playlist for relaxing evenings",
+                      "songs": [],
+                      "user_id": null,
+                      "friend_group_id": 789
+                    }
                   }
-                }
                 }
               }
             }
@@ -4115,7 +4365,9 @@
             "description": "Bad Request - Missing or invalid parameters",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4123,7 +4375,9 @@
             "description": "Unauthorized - User not authorized to create a playlist in this group (user is not a member of the group, so he/she cannot create a playlist in the group.)",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4131,7 +4385,9 @@
             "description": "Not Found - Either the user or friend group does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4139,19 +4395,27 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
         }
       }
     },
-     "/users/delete-playlist-from-group/": {
+    "/users/delete-playlist-from-group/": {
       "delete": {
-        "tags": ["FriendGroup"],
+        "tags": [
+          "FriendGroup"
+        ],
         "summary": "Delete a playlist from a friend group.To delete a playlist, the user that issues this request must be a member of the group for which the id is provided in the request body.",
         "operationId": "deletePlaylistFromGroup",
-        "security": [{"bearerAuth": []}],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "playlist_id",
@@ -4171,7 +4435,9 @@
             "description": "Bad Request - Missing or invalid playlist ID",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4179,7 +4445,9 @@
             "description": "Unauthorized - User not authorized to delete this playlist (user is not a member of the group, so he/she cannot delete a playlist in the group.)",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4187,7 +4455,9 @@
             "description": "Not Found - Playlist, user, or friend group does not exist",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           },
@@ -4195,28 +4465,15 @@
             "description": "Internal Server Error",
             "content": {
               "application/json": {
-                "schema": {"$ref": "#/components/schemas/Error"}
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
               }
             }
           }
         }
       }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   },
   "components": {
     "schemas": {
@@ -4449,7 +4706,9 @@
           "songs": {
             "type": "array",
             "description": "A list of songs in the playlist.",
-            "items": {"$ref": "#/components/schemas/SongMinimum"}
+            "items": {
+              "$ref": "#/components/schemas/SongMinimum"
+            }
           },
           "user_id": {
             "type": "integer",
@@ -4463,7 +4722,10 @@
             "description": "Friend group ID associated with the playlist"
           }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "UserSongRating": {
         "type": "object",
@@ -4614,16 +4876,29 @@
       "FriendGroupSimple": {
         "type": "object",
         "properties": {
-          "id": {"type": "integer"},
-          "name": {"type": "string"},
-          "description": {"type": "string"},
-          "img_url": {"type": "string", "format": "uri"},
-          "admin": {"type": "string"}
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "img_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "admin": {
+            "type": "string"
+          }
         }
       },
       "FriendGroupExtended": {
         "allOf": [
-          {"$ref": "#/components/schemas/FriendGroupSimple"},
+          {
+            "$ref": "#/components/schemas/FriendGroupSimple"
+          },
           {
             "type": "object",
             "properties": {
@@ -4632,9 +4907,16 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "id": {"type": "integer"},
-                    "username": {"type": "string"},
-                    "img_url": {"type": "string", "format": "uri"}
+                    "id": {
+                      "type": "integer"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "img_url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
                   }
                 }
               }
@@ -4645,7 +4927,9 @@
       "Error": {
         "type": "object",
         "properties": {
-          "error": {"type": "string"}
+          "error": {
+            "type": "string"
+          }
         }
       },
       "SongMinimum": {

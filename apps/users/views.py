@@ -22,7 +22,7 @@ from songs.models import (Playlist, Song,
                           RecordedEnvironment,
                           Instrument,
                           )
-from users.models import (User, UserPreferences,
+from users.models import (SuggestionNotification, User, UserPreferences,
                           UserSongRating, Friend,
                           FriendRequest,
                           RequestStatus, FriendGroup,
@@ -2432,4 +2432,42 @@ def delete_playlist_from_group(request, userid):
         return JsonResponse({'error': 'Friend group does not exist'}, status=404)
     except Exception as e:
         logging.error(f"error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def suggest_song(request, userid):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = json.loads(request.body, encoding='utf-8')
+            sender_user = data.get('sender_user')
+            receiver_user = data.get('receiver_user')
+            song_id = data.get('song_id')
+
+            if sender_user is None or receiver_user is None or song_id is None:
+                return JsonResponse({'error': 'Missing parameters'}, status=400)
+            
+            try:
+                sender = User.objects.get(username=sender_user)
+                receiver = User.objects.get(username=receiver_user)
+                song = Song.objects.get(id=song_id)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+            except Song.DoesNotExist:
+                return JsonResponse({'error': 'Song not found'}, status=404)
+            
+            if sender == receiver:
+                return JsonResponse({'error': 'You cannot send a song to yourself'}, status=400)
+            
+            suggestion_notification = SuggestionNotification(suggester=sender, receiver=receiver, song=song)
+            suggestion_notification.save()
+
+            return JsonResponse({'message': 'Song suggestion sent successfully'}, status=200) 
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
