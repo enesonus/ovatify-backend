@@ -314,7 +314,7 @@ def serializePlaylistInfo(playlist: Playlist):
         count = playlist.songs.count()
     song_imgs = [song.img_url
                  for song in
-                 playlist.songs.order_by("-created_at")[:count]]
+                 playlist.songs.all()[:count]]
     return {
         'id': playlist.id,
         'name': playlist.name,
