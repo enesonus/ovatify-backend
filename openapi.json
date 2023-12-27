@@ -4473,6 +4473,258 @@
           }
         }
       }
+    },
+    "/users/get-suggestions/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation",
+          "Friend"
+        ],
+        "summary": "Get a list of the suggestions made to an user.",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "description": "The username of the receiver user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Notifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "suggester": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "receiver": {
+                            "type": "string"
+                          },
+                          "song_id": {
+                            "type": "string",
+                            "maxLength": 300
+                          },
+                          "song_url": {
+                            "type": "string",
+                            "format": "url",
+                            "maxLength": 300
+                          },
+                          "song_name": {
+                            "type": "string",
+                            "maxLength": 300
+                          },
+                          "is_seen": {
+                            "type": "boolean",
+                            "default": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method, Missing parameters."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/get-suggestion-count/": {
+      "get": {
+        "tags": [
+          "User",
+          "Recommendation",
+          "Friend"
+        ],
+        "summary": "Get the number of the suggestions made to an user that is unread by the user.",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "description": "The username of the receiver user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "New notification count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method, Missing parameters."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/set-suggestion-seen/": {
+      "put": {
+        "tags": [
+          "User",
+          "Recommendation",
+          "Friend"
+        ],
+        "summary": "Mark a list of the suggestions made to an user as seen by the user.",
+        "requestBody": {
+          "description": "Data needed to set a user's suggestions as seen.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the sender of the song suggestion."
+                  }
+                },
+                "required": [
+                  "username"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response with a message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Suggestions are marked as seen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method, Missing parameters."
+          },
+          "404": {
+            "description": "User not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/users/delete-suggestion/": {
+      "delete": {
+        "tags": [
+          "User",
+          "Recommendation",
+          "Friend"
+        ],
+        "summary": "Delete a suggestion that was made to a user.",
+        "parameters": [
+          {
+            "name": "suggestion_id",
+            "in": "query",
+            "description": "The ID of the suggestion notification",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Suggestion deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method, Missing parameters."
+          },
+          "404": {
+            "description": "Suggestion not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
