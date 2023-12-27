@@ -2471,3 +2471,114 @@ def suggest_song(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def get_suggestions(request, userid):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = request.GET
+            username = data.get('username')
+            if username is None:
+                return JsonResponse({'error': 'Missing parameters'}, status=400)
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+            notifications = SuggestionNotification.objects.filter(receiver=user)
+
+            serialized_notifications = []
+            for notification in notifications:
+                serialized_notifications.append({
+                    'id': notification.id,
+                    'suggester': notification.suggester.username,
+                    'receiver': notification.receiver.username,
+                    'song_id': notification.song.id,  # Replace with the appropriate field for the song name
+                    'song_url': notification.song.img_url,
+                    'song_name': notification.song.name,
+                    'is_seen': notification.is_seen
+                })
+            return JsonResponse({'Notifications': serialized_notifications}, status=200)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def get_suggestion_count(request, userid):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = request.GET
+            username = data.get('username')
+            if username is None:
+                return JsonResponse({'error': 'Missing parameters'}, status=400)
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+            notifications = SuggestionNotification.objects.filter(receiver=user, is_seen=False)
+            notification_count = notifications.count()
+
+            return JsonResponse({'New notification count': notification_count}, status=200)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def set_suggestion_seen(request, userid):
+    try:
+        if request.method != 'PUT':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = json.loads(request.body, encoding='utf-8')
+            username = data.get('username')
+            if username is None:
+                return JsonResponse({'error': 'Missing parameters'}, status=400)
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'User not found'}, status=404)
+            notifications = SuggestionNotification.objects.filter(receiver=user, is_seen=False)
+            notifications.update(is_seen=True)
+            return JsonResponse({'message': 'Suggestions are marked as seen'}, status=200)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@token_required
+def delete_suggestion(request, userid):
+    try:
+        if request.method != 'DELETE':
+            return JsonResponse({'error': 'Invalid method'}, status=400)
+        else:
+            data = request.GET
+            suggestion_id = data.get('suggestion_id')
+            if suggestion_id is None:
+                return JsonResponse({'error': 'Missing parameters'}, status=400)
+            try:
+                notification = SuggestionNotification.objects.get(id=suggestion_id)
+            except SuggestionNotification.DoesNotExist:
+                return JsonResponse({'error': 'Suggestion not found'}, status=404)
+            notification.delete()
+            return JsonResponse({'message': 'Suggestion deleted successfully'}, status=200)
+    except KeyError as e:
+        logging.error(f"A KeyError occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

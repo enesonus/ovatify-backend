@@ -75,5 +75,9 @@ urlpatterns = [
     path('create-empty-playlist-in-group/', views.create_empty_playlist_in_group, name='create-empty-playlist-in-group'),
     path('delete-playlist-from-group/', views.delete_playlist_from_group, name='delete-playlist-from-group'),
     path('suggest-song/', views.suggest_song, name='suggest-song'),
+    path('get-suggestions/', views.get_suggestions, name='get-suggestions'),
+    path('get-suggestion-count/', views.get_suggestion_count, name='get-suggestion-count'),
+    path('set-suggestion-seen/', views.set_suggestion_seen, name='set-suggestion-seen'),
+    path('delete-suggestion/', views.delete_suggestion, name='delete-suggestion'),
 
 ]
