@@ -668,6 +668,369 @@
         }
       }
     },
+    "/songs/search-artists/{userid}/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Search for artists",
+        "description": "Retrieve a list of artists based on the provided search text.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the search is performed.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search_text",
+            "in": "query",
+            "description": "The text to search for artists. If not provided, returns a list of all artists.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artists found successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "artists_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or parameters"
+          }
+        }
+      }
+    },
+    "/songs/search-genres/{userid}/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Search for genres",
+        "description": "Retrieve a list of genres based on the provided search text.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the search is performed.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search_text",
+            "in": "query",
+            "description": "The text to search for genres. If not provided, returns a list of all genres.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Genres found successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "genres_info": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or parameters"
+          }
+        }
+      }
+    },
+    "/songs/get-all-moods/{userid}/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Get all moods",
+        "description": "Retrieve a list of all available moods.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the moods are retrieved.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All moods retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "moods": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or parameters"
+          }
+        }
+      }
+    },
+    "/songs/get-all-tempos/{userid}/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Get all tempos",
+        "description": "Retrieve a list of all available tempos.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the tempos are retrieved.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All tempos retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "tempos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid method or parameters"
+          }
+        }
+      }
+    },
+    "/songs/get-banger-songs/{userid}/": {
+      "get": {
+        "tags": [
+          "Song"
+        ],
+        "summary": "Get a random Banger song",
+        "description": "Retrieve a random Banger song based on specified filters.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the Banger song is retrieved.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "artist",
+            "in": "query",
+            "description": "Filter by artist name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "description": "Filter by genre name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mood",
+            "in": "query",
+            "description": "Filter by mood.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tempo",
+            "in": "query",
+            "description": "Filter by tempo.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Random Banger song retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "song_info": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "year": {
+                          "type": "integer"
+                        },
+                        "album": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "artists": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "album_url": {
+                          "type": "string",
+                          "format": "url"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No Banger songs found with the given filters"
+          },
+          "400": {
+            "description": "Invalid method or parameters"
+          }
+        }
+      }
+    },
+    
     "/users/create-user/": {
       "post": {
         "tags": [
@@ -3668,6 +4031,83 @@
         ]
       }
     },
+    "/songs/save-playlist/{userid}/": {
+      "post": {
+        "tags": [
+          "Playlist"
+        ],
+        "summary": "Save a playlist",
+        "description": "Create and save a playlist with the provided details and songs.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "description": "The user ID for whom the playlist is saved.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "songs": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "required": ["name", "description"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Playlist created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "playlist_id": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON format"
+          },
+          "404": {
+            "description": "User not found or one or more songs not found"
+          },
+          "405": {
+            "description": "Invalid request method"
+          }
+        }
+      }
+    },
+    
     "/users/get-global-all-friend-groups/": {
       "get": {
         "tags": [
