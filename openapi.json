@@ -3543,10 +3543,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "sender_user": {
-                    "type": "string",
-                    "description": "The username of the sender of the song suggestion."
-                  },
                   "receiver_user": {
                     "type": "string",
                     "description": "The username of the receiver of the song suggestion."
@@ -4922,17 +4918,6 @@
           "Friend"
         ],
         "summary": "Get a list of the suggestions made to an user.",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "query",
-            "description": "The username of the receiver user",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful response with a list of notifications.",
@@ -4950,18 +4935,19 @@
                             "type": "string",
                             "maxLength": 200
                           },
-                          "suggester": {
+                          "suggester_name": {
                             "type": "string",
                             "maxLength": 200
                           },
-                          "receiver": {
-                            "type": "string"
+                          "suggester_img_url": {
+                            "type": "string",
+                            "format": "url"
                           },
                           "song_id": {
                             "type": "string",
                             "maxLength": 300
                           },
-                          "song_url": {
+                          "song_img_url": {
                             "type": "string",
                             "format": "url",
                             "maxLength": 300
@@ -4969,10 +4955,6 @@
                           "song_name": {
                             "type": "string",
                             "maxLength": 300
-                          },
-                          "is_seen": {
-                            "type": "boolean",
-                            "default": false
                           }
                         }
                       }
@@ -5007,17 +4989,6 @@
           "Friend"
         ],
         "summary": "Get the number of the suggestions made to an user that is unread by the user.",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "query",
-            "description": "The username of the receiver user",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful response with a list of notifications.",
@@ -5059,26 +5030,6 @@
           "Friend"
         ],
         "summary": "Mark a list of the suggestions made to an user as seen by the user.",
-        "requestBody": {
-          "description": "Data needed to set a user's suggestions as seen.",
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "username": {
-                    "type": "string",
-                    "description": "The username of the sender of the song suggestion."
-                  }
-                },
-                "required": [
-                  "username"
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful response with a message.",
