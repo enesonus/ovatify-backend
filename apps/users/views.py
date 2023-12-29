@@ -2442,15 +2442,14 @@ def suggest_song(request, userid):
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
             data = json.loads(request.body, encoding='utf-8')
-            sender_user = data.get('sender_user')
             receiver_user = data.get('receiver_user')
             song_id = data.get('song_id')
 
-            if sender_user is None or receiver_user is None or song_id is None:
+            if receiver_user is None or song_id is None:
                 return JsonResponse({'error': 'Missing parameters'}, status=400)
             
             try:
-                sender = User.objects.get(username=sender_user)
+                sender = User.objects.get(id=userid)
                 receiver = User.objects.get(username=receiver_user)
                 song = Song.objects.get(id=song_id)
             except User.DoesNotExist:
@@ -2479,12 +2478,10 @@ def get_suggestions(request, userid):
         if request.method != 'GET':
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
-            data = request.GET
-            username = data.get('username')
-            if username is None:
+            if userid is None:
                 return JsonResponse({'error': 'Missing parameters'}, status=400)
             try:
-                user = User.objects.get(username=username)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
             notifications = SuggestionNotification.objects.filter(receiver=user)
@@ -2493,12 +2490,11 @@ def get_suggestions(request, userid):
             for notification in notifications:
                 serialized_notifications.append({
                     'id': notification.id,
-                    'suggester': notification.suggester.username,
-                    'receiver': notification.receiver.username,
+                    'suggester_name': notification.suggester.username,
+                    'suggester_img_url': User.objects.get(username=notification.suggester.username).img_url, #notification.receiver.username,
                     'song_id': notification.song.id,  # Replace with the appropriate field for the song name
-                    'song_url': notification.song.img_url,
-                    'song_name': notification.song.name,
-                    'is_seen': notification.is_seen
+                    'song_img_url': notification.song.img_url,
+                    'song_name': notification.song.name
                 })
             return JsonResponse({'Notifications': serialized_notifications}, status=200)
     except KeyError as e:
@@ -2515,12 +2511,10 @@ def get_suggestion_count(request, userid):
         if request.method != 'GET':
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
-            data = request.GET
-            username = data.get('username')
-            if username is None:
+            if userid is None:
                 return JsonResponse({'error': 'Missing parameters'}, status=400)
             try:
-                user = User.objects.get(username=username)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
             notifications = SuggestionNotification.objects.filter(receiver=user, is_seen=False)
@@ -2541,12 +2535,10 @@ def set_suggestion_seen(request, userid):
         if request.method != 'PUT':
             return JsonResponse({'error': 'Invalid method'}, status=400)
         else:
-            data = json.loads(request.body, encoding='utf-8')
-            username = data.get('username')
-            if username is None:
+            if userid is None:
                 return JsonResponse({'error': 'Missing parameters'}, status=400)
             try:
-                user = User.objects.get(username=username)
+                user = User.objects.get(id=userid)
             except User.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
             notifications = SuggestionNotification.objects.filter(receiver=user, is_seen=False)
