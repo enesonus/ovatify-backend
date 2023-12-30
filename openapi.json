@@ -4027,7 +4027,7 @@
         ]
       }
     },
-    "/songs/save-playlist/{userid}/": {
+    "/users/save-playlist/{userid}/": {
       "post": {
         "tags": [
           "Playlist"
@@ -4099,6 +4099,9 @@
           },
           "405": {
             "description": "Invalid request method"
+          },
+          "500": {
+            "description": "An unexpected error occurred"
           }
         }
       }
