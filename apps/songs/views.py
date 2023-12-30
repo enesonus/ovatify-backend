@@ -615,39 +615,3 @@ def get_banger_songs(request,userid):
 
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
-
-@csrf_exempt
-@token_required
-def save_playlist(request, userid):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body.decode('utf-8'))
-            user = User.objects.get(id=userid) 
-
-            playlist = Playlist.objects.create(
-                name=data['name'],
-                description=data['description'],
-                user=user
-            )
-
-            songs_data = data.get('songs', [])
-            for song_id in songs_data:
-                song = Song.objects.get(id=song_id)
-                
-                playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
-                playlist.songs.add(playlist_song)
-
-            playlist.save()
-
-            return JsonResponse({'playlist_id': playlist.id}, status=201)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
-
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-
-        except Song.DoesNotExist:
-            return JsonResponse({'error': 'One or more songs not found'}, status=404)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)

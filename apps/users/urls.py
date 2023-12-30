@@ -79,5 +79,5 @@ urlpatterns = [
     path('get-suggestion-count/', views.get_suggestion_count, name='get-suggestion-count'),
     path('set-suggestion-seen/', views.set_suggestion_seen, name='set-suggestion-seen'),
     path('delete-suggestion/', views.delete_suggestion, name='delete-suggestion'),
-
+    path('save-playlist/',views.save_playlist, name = 'save_playlist')
 ]

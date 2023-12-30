@@ -20,7 +20,7 @@ from songs.models import (Playlist, Song,
                           Artist, AlbumSong, Album,
                           InstrumentSong,
                           RecordedEnvironment,
-                          Instrument,
+                          Instrument, PlaylistSong
                           )
 from users.models import (SuggestionNotification, User, UserPreferences,
                           UserSongRating, Friend,
@@ -2574,3 +2574,44 @@ def delete_suggestion(request, userid):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+@csrf_exempt
+@token_required
+def save_playlist(request, userid):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            user = User.objects.get(id=userid) 
+
+            playlist = Playlist.objects.create(
+                name=data['name'],
+                description=data['description'],
+                user=user
+            )
+
+            songs_data = data.get('songs', [])
+            for song_id in songs_data:
+                song = Song.objects.get(id=song_id)
+                
+                playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+                playlist.songs.add(playlist_song)
+
+            playlist.save()
+
+            return JsonResponse({'playlist_id': playlist.id}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'One or more songs not found'}, status=404)
+        
+        except Exception as e:
+            print(f"An unexpected error occurred: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
