@@ -4929,7 +4929,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "Notifications": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -5000,7 +5000,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "New notification count": {
+                    "count": {
                       "type": "integer"
                     }
                   }

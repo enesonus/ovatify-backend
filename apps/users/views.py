@@ -2496,7 +2496,7 @@ def get_suggestions(request, userid):
                     'song_img_url': notification.song.img_url,
                     'song_name': notification.song.name
                 })
-            return JsonResponse({'Notifications': serialized_notifications}, status=200)
+            return JsonResponse({'items': serialized_notifications}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
@@ -2520,7 +2520,7 @@ def get_suggestion_count(request, userid):
             notifications = SuggestionNotification.objects.filter(receiver=user, is_seen=False)
             notification_count = notifications.count()
 
-            return JsonResponse({'New notification count': notification_count}, status=200)
+            return JsonResponse({'count': notification_count}, status=200)
     except KeyError as e:
         logging.error(f"A KeyError occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
