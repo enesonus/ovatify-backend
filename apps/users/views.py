@@ -2587,11 +2587,7 @@ def save_playlist(request, userid):
             songs_data = data.get('songs', [])
             for song_id in songs_data:
                 song = Song.objects.get(id=song_id)
-                
-                playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
-                playlist.songs.add(playlist_song)
-
-            playlist.save()
+                playlist.songs.add(song)
 
             return JsonResponse({'playlist_id': playlist.id}, status=201)
 
