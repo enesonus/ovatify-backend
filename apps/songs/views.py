@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 import os
 import logging
+import random
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Sum, Q
 from django.views.decorators.csrf import csrf_exempt
@@ -659,7 +660,9 @@ def get_banger_songs(request, userid):
 
         # Randomize the order and retrieve one song
         if songs.exists():
-            random_song = songs.order_by('?').first()
+            ids = songs.values_list('id', flat=True)
+            random_id = random.sample(ids, 1)[0]
+            random_song = songs.get(id=random_id)
 
             song_info = serializeSongMinimum(random_song)
 
