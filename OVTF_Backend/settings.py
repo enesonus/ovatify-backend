@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_nose",
     "corsheaders",
+    "django.contrib.postgres",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

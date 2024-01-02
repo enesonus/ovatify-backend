@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 import spotipy
 from OVTF_Backend.firebase_auth import token_required
 from apps.songs.utils import bulk_get_or_create, flush_database, get_artist_bio, get_genres_and_artist_info, \
-    getFirstRelatedSong
+    getFirstRelatedSong, serializeSongMinimum
 from songs.models import (Instrument, Mood, RecordedEnvironment,
                           Song, Artist, Album, ArtistSong,
                           AlbumSong, Genre, GenreSong, Tempo, Playlist, PlaylistSong)
@@ -507,17 +507,33 @@ def get_random_genres(request, userid):
         return JsonResponse({'error': 'Invalid number of genres'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+
 @csrf_exempt
 @token_required
-def search_artists(request,userid):
+def search_artists(request, userid):
     if request.method == 'GET':
-        search_text = request.GET.get('search_text', '')
+        data = request.GET
+        search_text = data.get('search_text')
+        number_of_artists = data.get('number_of_artists', 10)
 
         if search_text:
-            artists = Artist.objects.filter(name__istartswith=search_text).order_by('name')[:10]
+            # Prepare the search query and vector
+            search_query = SearchQuery(search_text)
+            search_vector = SearchVector('name')
+
+            # Annotate each song with its search rank and trigram similarity
+            artists = Artist.objects.annotate(
+                rank=SearchRank(search_vector, search_query),
+                similarity=TrigramSimilarity('name', search_text)
+            ).filter(
+                Q(rank__gte=0.2) |
+                Q(similarity__gt=0.2))\
+             .order_by("-similarity")[:number_of_artists]
+
         else:
-            artists = Artist.objects.all().order_by('name')[:10]
+            return JsonResponse({'error': 'Missing search text'},
+                                status=400)
 
         artists_info = [
             {
@@ -530,16 +546,32 @@ def search_artists(request,userid):
 
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
+
+
 @csrf_exempt
 @token_required
-def search_genres(request,userid):
+def search_genres(request, userid):
     if request.method == 'GET':
-        search_text = request.GET.get('search_text', '')
+        data = request.GET
+        search_text = data.get('search_text')
+        number_of_genres = data.get('number_of_genres', 10)
 
         if search_text:
-            genres = Genre.objects.filter(name__istartswith=search_text).order_by('name')[:10]
+            # Prepare the search query and vector
+            search_query = SearchQuery(search_text)
+            search_vector = SearchVector('name')
+
+            # Annotate each song with its search rank and trigram similarity
+            genres = Genre.objects.annotate(
+                rank=SearchRank(search_vector, search_query),
+                similarity=TrigramSimilarity('name', search_text)
+            ).filter(
+                Q(rank__gte=0.2) |
+                Q(similarity__gt=0.2))\
+             .order_by("-similarity")[:number_of_genres]
         else:
-            genres = Genre.objects.all().order_by('name')[:10]
+            return JsonResponse({'error': 'Missing search text'},
+                                status=400)
         genres_info = [
             {
                 'name': genre.name,
@@ -547,67 +579,89 @@ def search_genres(request,userid):
             for genre in genres
         ]
 
-        return JsonResponse({'message': 'Genres found', 'genres_info': genres_info}, status=200)
+        return JsonResponse({'message': 'Genres found',
+                             'genres_info': genres_info},
+                            status=200)
 
     else:
-        return JsonResponse({'error': 'Invalid method'}, status=400)
-    
+        return JsonResponse({'error': 'Invalid method'},
+                            status=400)
+
+
 @csrf_exempt
 @token_required
-def get_all_moods(request,userid):
+def get_all_moods(request, userid):
     if request.method == 'GET':
         moods = [{'value': mood.value, 'label': mood.label} for mood in Mood.choices]
         return JsonResponse({'message': 'All moods', 'moods': moods}, status=200)
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
 
+
 @csrf_exempt
 @token_required
-def get_all_tempos(request,userid):
+def get_all_tempos(request, userid):
     if request.method == 'GET':
         tempos = [{'value': tempo.value, 'label': tempo.label} for tempo in Tempo.choices]
         return JsonResponse({'message': 'All tempos', 'tempos': tempos}, status=200)
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
-    
+
 
 @csrf_exempt
 @token_required
-def get_banger_songs(request,userid):
+def get_banger_songs(request, userid):
     if request.method == 'GET':
         data = request.GET  # Use GET instead of POST for query parameters
 
-        artist_name = data.get('artist', '')
-        genre_name = data.get('genre', '')
-        mood = data.get('mood', '')
-        tempo = data.get('tempo', '')
+        artist_name = data.get('artist')
+        genre_name = data.get('genre')
+        mood = data.get('mood')
+        tempo = data.get('tempo')
+        
+        valid_params = {"artist_name": artist_name,
+                        "genre_name": genre_name,
+                        "mood": mood,
+                        "tempo": tempo}
 
-        songs = Song.objects.all()
+        for key in list(valid_params):
+            if valid_params[key] is None:
+                del valid_params[key]
 
-        if artist_name:
-            songs = songs.filter(artists__name__iexact=artist_name)
+        if len(valid_params) == 0:
+            return JsonResponse({'error': 'No filters provided'}, status=400)
 
-        if genre_name:
-            songs = songs.filter(genres__name__iexact=genre_name)
+        songs = None
 
-        if mood:
-            songs = songs.filter(mood=mood)
+        if "artist_name" in valid_params and artist_name != "":
+            if songs is None:
+                songs = Song.objects.filter(artists__name__iexact=artist_name)
+            else:
+                songs = songs.filter(artists__name__iexact=artist_name)
 
-        if tempo:
-            songs = songs.filter(tempo=tempo)
+        if "genre_name" in valid_params and genre_name != "":
+            if songs is None:
+                songs = Song.objects.filter(genres__name__iexact=genre_name)
+            else:
+                songs = songs.filter(genres__name__iexact=genre_name)
+
+        if "mood" in valid_params and mood != "":
+            if songs is None:
+                songs = Song.objects.filter(mood=mood)
+            else:
+                songs = songs.filter(mood=mood)
+
+        if "tempo" in valid_params and tempo != "":
+            if songs is None:
+                songs = Song.objects.filter(tempo=tempo)
+            else:
+                songs = songs.filter(tempo=tempo)
 
         # Randomize the order and retrieve one song
         if songs.exists():
             random_song = songs.order_by('?').first()
 
-            song_info = {
-                'id': random_song.id,
-                'name': random_song.name,
-                'year': random_song.release_year,
-                'album': [album.name for album in random_song.albums.all()],
-                'artists': [artist.name for artist in random_song.artists.all()],
-                'album_url': random_song.img_url,
-            }
+            song_info = serializeSongMinimum(random_song)
 
             return JsonResponse({'message': 'Random Banger song found', 'song_info': song_info}, status=200)
         else:
@@ -615,3 +669,40 @@ def get_banger_songs(request,userid):
 
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
+
+
+@csrf_exempt
+@token_required
+def save_playlist(request, userid):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            user = User.objects.get(id=userid)
+
+            playlist = Playlist.objects.create(
+                name=data['name'],
+                description=data['description'],
+                user=user
+            )
+
+            songs_data = data.get('songs', [])
+            for song_id in songs_data:
+                song = Song.objects.get(id=song_id)
+
+                playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+                playlist.songs.add(playlist_song)
+
+            playlist.save()
+
+            return JsonResponse({'playlist_id': playlist.id}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        except Song.DoesNotExist:
+            return JsonResponse({'error': 'One or more songs not found'}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

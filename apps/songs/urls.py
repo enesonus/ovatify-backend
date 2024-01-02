@@ -20,4 +20,5 @@ urlpatterns = [
  path('get-all-moods/', views.get_all_moods, name='get_all_moods'),
  path('get-all-tempos/', views.get_all_tempos, name='get_all_tempos'),
  path('get-banger-songs/', views.get_banger_songs, name='get_banger_songs')
+
 ]

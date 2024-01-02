@@ -668,7 +668,7 @@
         }
       }
     },
-    "/songs/search-artists/{userid}/": {
+    "/songs/search-artists/": {
       "get": {
         "tags": [
           "Song"
@@ -681,15 +681,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the search is performed.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
           {
             "name": "search_text",
             "in": "query",
@@ -733,7 +724,7 @@
         }
       }
     },
-    "/songs/search-genres/{userid}/": {
+    "/songs/search-genres/": {
       "get": {
         "tags": [
           "Song"
@@ -746,15 +737,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the search is performed.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
           {
             "name": "search_text",
             "in": "query",
@@ -798,7 +780,7 @@
         }
       }
     },
-    "/songs/get-all-moods/{userid}/": {
+    "/songs/get-all-moods/": {
       "get": {
         "tags": [
           "Song"
@@ -811,15 +793,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the moods are retrieved.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
         ],
         "responses": {
           "200": {
@@ -857,7 +830,7 @@
         }
       }
     },
-    "/songs/get-all-tempos/{userid}/": {
+    "/songs/get-all-tempos/": {
       "get": {
         "tags": [
           "Song"
@@ -870,15 +843,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the tempos are retrieved.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
         ],
         "responses": {
           "200": {
@@ -916,7 +880,7 @@
         }
       }
     },
-    "/songs/get-banger-songs/{userid}/": {
+    "/songs/get-banger-songs/": {
       "get": {
         "tags": [
           "Song"
@@ -929,15 +893,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the Banger song is retrieved.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
           {
             "name": "artist",
             "in": "query",
@@ -4027,7 +3982,7 @@
         ]
       }
     },
-    "/users/save-playlist/{userid}/": {
+    "/users/save-playlist/": {
       "post": {
         "tags": [
           "Playlist"
@@ -4040,15 +3995,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "description": "The user ID for whom the playlist is saved.",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
         ],
         "requestBody": {
           "required": true,
