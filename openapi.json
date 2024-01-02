@@ -932,44 +932,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Random Banger song retrieved successfully",
+            "description": "Song details retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
                       "type": "string"
                     },
-                    "song_info": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "year": {
-                          "type": "integer"
-                        },
-                        "album": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "artists": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "album_url": {
-                          "type": "string",
-                          "format": "url"
-                        }
-                      }
+                    "release_year": {
+                      "type": "integer"
+                    },
+                    "img_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "main_artist": {
+                      "type": "string"
                     }
                   }
                 }
