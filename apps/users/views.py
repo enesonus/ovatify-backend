@@ -244,29 +244,25 @@ def add_song_rating(request, userid):
 @token_required
 def remove_friend(request, userid):
     try:
-        if request.method == 'DELETE':
-            try:
-                data = request.GET
-                user_id = data.get('user_id')
-                friend_username = data.get('friend_username')
+        if request.method != 'DELETE':
+            return HttpResponse(status=405)
 
-                user = User.objects.get(id=user_id)
-                friend = User.objects.get(id=friend_username)
+        data = request.GET
+        friend_username = data.get('friend_username')
 
-                # Check if the friendship exists
-                if not user.friends.filter(id=friend.id).exists():
-                    return JsonResponse({'detail': 'Friendship does not exist'}, status=400)
+        user = User.objects.get(id=userid)
+        friend = User.objects.get(username=friend_username)
 
-                # Remove the friend relationship using .remove() method
-                user.friends.remove(friend)
+        # Check if the friendship exists
+        if not user.friends.filter(id=friend.id).exists():
+            return JsonResponse({'detail': 'Friendship does not exist'},
+                                status=400)
 
-                return JsonResponse({'detail': 'Friend removed successfully'}, status=200)
+        # Remove the friend relationship using .remove() method
+        user.friends.remove(friend)
 
-            except User.DoesNotExist:
-                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
-
-        else:
-            return JsonResponse({'error': 'Invalid method'}, status=400)
+        return JsonResponse({'detail': 'Friend removed successfully'},
+                            status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -276,30 +272,25 @@ def remove_friend(request, userid):
 @token_required
 def add_friend(request, userid):
     try:
-        if request.method == 'POST':
-            try:
-                user_id = request.POST.get('user_id')
-                if user_id is None:
-                    user_id = userid
-                friend_id = request.POST.get('friend_id')
+        if request.method != 'POST':
+            return HttpResponse(status=405)
 
-                user = User.objects.get(id=user_id)
-                friend = User.objects.get(id=friend_id)
+        data = json.loads(request.body, encoding='utf-8')
+        friend_id = data.get('friend_id')
 
-                # Check if the friendship already exists
-                if Friend.objects.filter(user=user, friend=friend).exists():
-                    return JsonResponse({'detail': 'Friendship already exists'}, status=400)
+        user = User.objects.get(id=userid)
+        friend = User.objects.get(id=friend_id)
 
-                # Modify the existing friend relationship by using .add() method
-                user.friends.add(friend)
+        # Check if the friendship already exists
+        if Friend.objects.filter(user=user, friend=friend).exists():
+            return JsonResponse({'detail': 'Friendship already exists'},
+                                status=400)
 
-                return JsonResponse({'detail': 'Friend added successfully'}, status=200)
+        # Modify the existing friend relationship by using .add() method
+        user.friends.add(friend)
 
-            except User.DoesNotExist:
-                return JsonResponse({'detail': 'User or friend does not exist'}, status=404)
-
-        else:
-            return JsonResponse({'error': 'Invalid method'}, status=400)
+        return JsonResponse({'detail': 'Friend added successfully'},
+                            status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
