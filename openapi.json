@@ -2197,6 +2197,142 @@
         ]
       }
     },
+    "/users/remove-friend/": {
+      "delete": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "parameters": [
+          {
+            "name": "friend_username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The username of the friend to be removed"
+          }
+        ],
+        "summary": "Remove a friend",
+        "operationId": "removeFriend",
+        "responses": {
+          "200": {
+            "description": "Friend removed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or friendship does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or friend does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/add-friend/": {
+      "post": {
+        "tags": [
+          "User",
+          "Friend"
+        ],
+        "parameters": [
+          {
+            "name": "friend_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the friend to be added"
+          }
+        ],
+        "summary": "Add a friend",
+        "operationId": "addFriend",
+        "responses": {
+          "200": {
+            "description": "Friend added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or friendship already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or friend does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/get-all-friends/": {
       "get": {
         "tags": [

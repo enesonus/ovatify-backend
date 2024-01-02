@@ -244,13 +244,14 @@ def add_song_rating(request, userid):
 @token_required
 def remove_friend(request, userid):
     try:
-        if request.method == 'POST':
+        if request.method == 'DELETE':
             try:
-                user_id = request.POST.get('user_id')
-                friend_id = request.POST.get('friend_id')
+                data = request.GET
+                user_id = data.get('user_id')
+                friend_username = data.get('friend_username')
 
                 user = User.objects.get(id=user_id)
-                friend = User.objects.get(id=friend_id)
+                friend = User.objects.get(id=friend_username)
 
                 # Check if the friendship exists
                 if not user.friends.filter(id=friend.id).exists():
@@ -278,6 +279,8 @@ def add_friend(request, userid):
         if request.method == 'POST':
             try:
                 user_id = request.POST.get('user_id')
+                if user_id is None:
+                    user_id = userid
                 friend_id = request.POST.get('friend_id')
 
                 user = User.objects.get(id=user_id)
