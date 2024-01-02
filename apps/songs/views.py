@@ -661,7 +661,7 @@ def get_banger_songs(request, userid):
         # Randomize the order and retrieve one song
         if songs.exists():
             ids = songs.values_list('id', flat=True)
-            random_id = random.sample(ids, 1)[0]
+            random_id = random.sample(list(ids), 1)[0]
             random_song = songs.get(id=random_id)
 
             song_info = serializeSongMinimum(random_song)
