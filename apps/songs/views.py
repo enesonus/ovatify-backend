@@ -593,7 +593,7 @@ def search_genres(request, userid):
 @token_required
 def get_all_moods(request, userid):
     if request.method == 'GET':
-        moods = [{'value': mood.value, 'label': mood.label} for mood in Mood.choices]
+        moods = [{'value': mood[0], 'label': mood[1]} for mood in Mood.choices]
         return JsonResponse({'message': 'All moods', 'moods': moods}, status=200)
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
@@ -603,7 +603,7 @@ def get_all_moods(request, userid):
 @token_required
 def get_all_tempos(request, userid):
     if request.method == 'GET':
-        tempos = [{'value': tempo.value, 'label': tempo.label} for tempo in Tempo.choices]
+        tempos = [{'value': tempo[0], 'label': tempo[1]} for tempo in Tempo.choices]
         return JsonResponse({'message': 'All tempos', 'tempos': tempos}, status=200)
     else:
         return JsonResponse({'error': 'Invalid method'}, status=400)
