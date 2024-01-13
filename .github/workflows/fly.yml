@@ -19,6 +19,6 @@ jobs:
       #                        --app ovatify-backend-dev
       - run: |
           echo "${{ secrets.ENV_FILE }}" > .env
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --remote-only --app ovatify-backend
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
