@@ -14,6 +14,8 @@ from users.models import (FriendGroup, FriendRequest,
                           RequestStatus, User,
                           UserPreferences, UserSongRating)
 from django.utils import timezone
+from unittest.mock import patch, MagicMock
+from rest_framework.test import APIClient
 
 
 class UserModelTest(TestCase):
@@ -172,6 +174,39 @@ class UserSongRatingModelTest(TestCase):
         # Test if rating is deleted
         self.assertFalse(UserSongRating.objects.filter(user=UserSongRatingModelTest.user1,
                                                        song=UserSongRatingModelTest.song1).exists())
+
+
+@patch('OVTF_Backend.firebase_auth.token_required', lambda x: x)
+class CreateUserViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Setup any initial data the tests might rely on
+        cls.user = User.objects.create(id="testuser", username='existinguser',
+                                       email='existing@example.com',
+                                       last_login=timezone.now())
+
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+
+    def test_create_user_no_email(self):
+        # Test for the scenario where email is not provided in the request(400 Bad Request)
+        response = self.client.post(reverse('create-user'),
+                                    {},
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 401)
+
+    @patch('users.views.User.objects.filter')
+    @patch('users.views.User.objects.create')
+    def test_create_user_existing_email(self, mock_create, mock_filter):
+        # Setup the mock
+        mock_filter.return_value.exists.return_value = True
+
+        # Test for existing user
+        response = self.client.post(reverse('create-user'), {'email': 'existing@example.com'})
+        self.assertEqual(response.status_code, 401)
+        mock_create.assert_not_called()
+
 
 
 # class UserApiTest(TestCase):
