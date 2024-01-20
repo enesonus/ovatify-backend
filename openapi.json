@@ -4743,17 +4743,46 @@
         ],
         "responses": {
           "200": {
-            "description": "asd",
+            "description": "List of playlists retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "playlists": {
+                    "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Playlist"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "song_imgs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "url"
+                            }
+                          },
+                          "user_id": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "friend_group_id": {
+                            "type": "integer",
+                            "nullable": true
+                          }
+                        }
                       }
+                    },
+                    "count": {
+                      "type": "integer"
                     }
                   }
                 }
