@@ -176,7 +176,6 @@ class UserSongRatingModelTest(TestCase):
                                                        song=UserSongRatingModelTest.song1).exists())
 
 
-@patch('OVTF_Backend.firebase_auth.token_required', lambda x: x)
 class CreateUserViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -188,13 +187,14 @@ class CreateUserViewTest(TestCase):
     def setUp(self):
         # Setup run before every test method.
         self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 
     def test_create_user_no_email(self):
         # Test for the scenario where email is not provided in the request(400 Bad Request)
         response = self.client.post(reverse('create-user'),
                                     {},
                                     content_type='application/json')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400)
 
     @patch('users.views.User.objects.filter')
     @patch('users.views.User.objects.create')
@@ -203,8 +203,12 @@ class CreateUserViewTest(TestCase):
         mock_filter.return_value.exists.return_value = True
 
         # Test for existing user
-        response = self.client.post(reverse('create-user'), {'email': 'existing@example.com'})
-        self.assertEqual(response.status_code, 401)
+        data = {"email": "existing@example.com"}
+        data = json.dumps(data)
+        response = self.client.post(reverse("create-user"),
+                                    data=data,
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
         mock_create.assert_not_called()
 
 
