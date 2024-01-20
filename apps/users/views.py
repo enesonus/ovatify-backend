@@ -2354,9 +2354,13 @@ def get_playlists_of_group(request, userid):
         if group_id is None or not isinstance(group_id, int):
             return JsonResponse({'error': 'Please check the group id field.'}, status=400)
         friend_group = FriendGroup.objects.get(id=group_id)
-        playlists = friend_group.playlists.all()
-        serialized_playlists = [serializePlaylist(playlist) for playlist in playlists]
-        return JsonResponse({'playlists': serialized_playlists}, status=200)
+        playlists = friend_group.playlists.order_by('-updated_at').all()
+        data = []
+        for playlist in playlists:
+            serialized_pl = serializePlaylistInfo(playlist)
+            data.append(serialized_pl)
+        return JsonResponse({'items': data, 'count': len(data)}, status=200)
+        #return JsonResponse({'playlists': serialized_playlists}, status=200)
     except ValueError:
         return JsonResponse({'error': 'Invalid parameters'}, status=400)
     except FriendGroup.DoesNotExist:
