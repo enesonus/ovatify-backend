@@ -70,6 +70,7 @@ urlpatterns = [
     path('add-friend-to-group/', views.add_friend_to_group, name='add-friend-to-group'),
     path('remove-friend-from-group/', views.remove_friend_from_group, name='remove-friend-from-group'),
     path('delete-friend-group/', views.delete_friend_group, name='delete-friend-group'),
+    path('edit-friend-group/', views.edit_friend_group, name='edit-friend-group'),
     path('get-all-friend-groups-of-user/', views.get_all_friend_groups_of_user, name='get-all-friend-groups-of-user'),
     path('get-playlists-of-group/', views.get_playlists_of_group, name='get-playlists-of-group'),
     path('create-empty-playlist-in-group/', views.create_empty_playlist_in_group, name='create-empty-playlist-in-group'),
