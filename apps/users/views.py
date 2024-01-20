@@ -2320,6 +2320,39 @@ def delete_friend_group(request, userid):
 
 @csrf_exempt
 @token_required
+def edit_friend_group(request, userid):
+    if request.method != 'PUT':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body)
+        group_id = data.get('group_id')
+        name = data.get('name')
+        description = data.get('description')
+
+        if group_id is None or not isinstance(group_id, int):
+            return JsonResponse({'error': 'Please check the group id field.'}, status=400)
+        user = User.objects.get(id=userid)
+        friend_group = FriendGroup.objects.get(id=group_id)
+        if friend_group.created_by != user:
+            return JsonResponse({'error': 'You are not authorized to update this friend group.'}, status=401)
+        if description is not None:
+            friend_group.description = description
+        if name is not None:
+            friend_group.name = name
+        friend_group.save()
+        return JsonResponse({'message': 'Friend group edited successfully'}, status=200)
+    except FriendGroup.DoesNotExist:
+        return JsonResponse({'error': 'Friend group with the given id does not exist'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Friend with the given username does not exist'}, status=404)
+    except Exception as e:
+        logging.error(f"error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+@csrf_exempt
+@token_required
 def get_all_friend_groups_of_user(request, userid):
     if request.method != 'GET':
         return HttpResponse(status=405)
