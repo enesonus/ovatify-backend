@@ -183,6 +183,35 @@ class UserSongRatingModelTest(TestCase):
         # Test if rating is deleted
         self.assertFalse(UserSongRating.objects.filter(user=UserSongRatingModelTest.user1,
                                                        song=UserSongRatingModelTest.song1).exists())
+    def test_average_song_rating(self):
+        rating1 = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=4.5)
+        rating2 = UserSongRating.objects.create(user=UserSongRatingModelTest.user2,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=3.5)
+        rating3 = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song2,
+                                                rating=2.5)
+        rating4 = UserSongRating.objects.create(user=UserSongRatingModelTest.user2,
+                                                song=UserSongRatingModelTest.song2,
+                                                rating=1.5)
+        # Test if average rating is calculated correctly
+        url = reverse('get-average-rating')  # Replace with your URL name
+        response = self.client.get(url, {'song_id': self.song1.id})
+        data = response.json()
+
+        # Test if the response contains the correct average rating for song1
+        self.assertEqual(response.status_code, 200)
+        self.assertAlmostEqual(data.get('average_rating', 0), 4)
+
+        # Make GET request to the average_song_rating endpoint for song2
+        response = self.client.get(url, {'song_id': self.song2.id})
+        data = response.json()
+
+        # Test if the response contains the correct average rating for song2
+        self.assertEqual(response.status_code, 200)
+        self.assertAlmostEqual(data.get('average_rating', 0), 2)
 
 
 class CreateUserViewTest(TestCase):
