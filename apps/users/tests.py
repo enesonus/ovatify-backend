@@ -16,6 +16,7 @@ from users.models import (FriendGroup, FriendRequest,
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
 from rest_framework.test import APIClient
+from datetime import timedelta
 
 
 class UserModelTest(TestCase):
@@ -111,7 +112,7 @@ class UserModelTest(TestCase):
         self.assertEqual(pref.data_sharing_consent, False)
 
     def test_create_friend_group(self):
-        group = FriendGroup.objects.create(name="Test Group")
+        group = FriendGroup.objects.create(name="Test Group", created_by=UserModelTest.user1)
         # Add members to the group
         group.friends.add(UserModelTest.user1, UserModelTest.user2)
         # Test creation and attributes of FriendGroup
@@ -131,6 +132,7 @@ class UserSongRatingModelTest(TestCase):
                                         last_login=timezone.now())
         cls.song1 = Song.objects.create(id="song1",
                                    name="Fark Ettim",
+                                   duration=timedelta(minutes=3, seconds=30),
                                    tempo=Tempo.MEDIUM,
                                    mood=Mood.HAPPY,
                                    recorded_environment=RecordedEnvironment.STUDIO,
@@ -138,6 +140,7 @@ class UserSongRatingModelTest(TestCase):
                                    )
         cls.song2 = Song.objects.create(id="song2",
                                       name="Canima minnet",
+                                      duration=timedelta(minutes=3, seconds=30),
                                       tempo=Tempo.MEDIUM,
                                       mood=Mood.HAPPY,
                                       recorded_environment=RecordedEnvironment.STUDIO,
