@@ -5,7 +5,7 @@ from django.urls import reverse
 from songs.models import (Song, Tempo,
                           Mood, RecordedEnvironment,
                           Genre, Artist,
-                          Album, Instrument, 
+                          Album, Instrument,
                           GenreSong, ArtistSong,
                           AlbumSong, InstrumentSong)
 
@@ -22,6 +22,7 @@ from rest_framework.test import APIClient
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+
 class UserModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -161,8 +162,8 @@ class UserSongRatingModelTest(TestCase):
 
     def test_update_user_song_rating(self):
         rating = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
-                                               song=UserSongRatingModelTest.song1,
-                                               rating=4.5)
+                                              song=UserSongRatingModelTest.song1,
+                                              rating=4.5)
         rating.rating = 3.5
         rating.save()
         rating = UserSongRating.objects.get(user=UserSongRatingModelTest.user1,
@@ -174,8 +175,8 @@ class UserSongRatingModelTest(TestCase):
 
     def test_delete_user_song_rating(self):
         rating = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
-                                                song=UserSongRatingModelTest.song1,
-                                                rating=4.5)
+                                               song=UserSongRatingModelTest.song1,
+                                               rating=4.5)
         rating.delete()
         # Test if rating is deleted
         self.assertFalse(UserSongRating.objects.filter(user=UserSongRatingModelTest.user1,
@@ -205,7 +206,7 @@ class CreateUserViewTest(TestCase):
     @patch('users.views.User.objects.filter')
     @patch('users.views.User.objects.create')
     def test_create_user_existing_email(self, mock_create, mock_filter):
-        # Setup the mock
+        # Setup the mock to return a response with an OK status code to imitate the behavior of database query
         mock_filter.return_value.exists.return_value = True
 
         # Test for existing user
@@ -215,8 +216,164 @@ class CreateUserViewTest(TestCase):
                                     data=data,
                                     content_type='application/json')
         self.assertEqual(response.status_code, 400)
-        mock_create.assert_not_called()
+        mock_create.assert_not_called()  # Assert that the create method was not called because the user already exists
 
+
+class DeleteUserViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        pass  # No initial data needed
+
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    @patch('users.views.User.objects.get')
+    def test_delete_nonexistent_user(self, mock_get):
+        # Setup the mock to return a response with an OK status code to imitate the behavior of database query
+        mock_get.side_effect = User.DoesNotExist
+        # Test if a user with the given id does not exist (404 Not Found)
+        response = self.client.delete(reverse("delete-user"))
+        self.assertEqual(response.status_code, 404)
+
+
+class UserPreferencesCreateTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Nothing to set up
+        pass
+
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    @patch('users.views.UserPreferences.objects.get_or_create')
+    @patch('users.views.User.objects.get')
+    def test_user_preferences_user_not_exist(self, mock_get, mock_preferences_get_or_create):
+        mock_get.side_effect = User.DoesNotExist
+        data = {"user": "nonexistinguser"}
+        response = self.client.post(reverse('user-preferences-create'), json.dumps(data),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 404)
+        # assert that preferences are not created
+        self.assertFalse(mock_preferences_get_or_create.called)
+
+    @patch('users.views.UserPreferences.objects.get_or_create')
+    @patch('users.views.User.objects.get')
+    def test_user_preferences_create_new(self, mock_user_get, mock_preferences_get_or_create):
+        mock_user = MagicMock(spec=User)  # Create a mock user
+        mock_user_get.return_value = mock_user  # Return the mock user when User.objects.get is called
+        mock_preferences_get_or_create.return_value = (MagicMock(spec=UserPreferences), True)
+        # Return a mock UserPreferences object
+        # and True to indicate that the object was created
+
+        data = {"user": "existinguser"}
+        response = self.client.post(reverse('user-preferences-create'), json.dumps(data),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+    @patch('users.views.UserPreferences.objects.get_or_create')
+    @patch('users.views.User.objects.get')
+    def test_user_preferences_update_existing(self, mock_user_get, mock_preferences_get_or_create):
+        mock_user = MagicMock(spec=User)  # Create a mock user
+        mock_user_get.return_value = mock_user  # Return the mock user when User.objects.get is called
+        mock_preferences_get_or_create.return_value = (MagicMock(spec=UserPreferences), False)
+        # Return a mock UserPreferences object and False to indicate that the object
+        # already exists (which is the implementation of get_or_create)
+        data = {"user": "existinguser", "data_processing_consent": False, "data_sharing_consent": False}
+        response = self.client.post(reverse('user-preferences-create'), json.dumps(data),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+
+class DeleteSongRatingTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Nothing to set up
+        pass
+
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    @patch('users.views.User.objects.get')
+    def test_user_does_not_exist(self, mock_user_get):
+        mock_user_get.side_effect = User.DoesNotExist
+        data = {"userid": "nonexistinguser", "song_id": "123"}
+        response = self.client.delete(reverse('delete-song-rating'), json.dumps(data),
+                                      content_type='application/json')
+        self.assertEqual(response.status_code, 404)
+
+    @patch('users.views.Song.objects.get')
+    @patch('users.views.User.objects.get')
+    def test_song_does_not_exist(self, mock_user_get, mock_song_get):
+        mock_user_get.return_value = MagicMock(spec=User)
+        mock_song_get.side_effect = Song.DoesNotExist
+        data = {"userid": "existinguser", "song_id": "nonexistingsong"}
+        response = self.client.delete(reverse('delete-song-rating'), json.dumps(data),
+                                      content_type='application/json')
+        self.assertEqual(response.status_code, 404)
+
+    @patch('users.views.UserSongRating.objects.get')
+    @patch('users.views.Song.objects.get')
+    @patch('users.views.User.objects.get')
+    def test_user_song_rating_does_not_exist(self, mock_user_get, mock_song_get, mock_user_song_rating_get):
+        mock_user_get.return_value = MagicMock(spec=User)
+        mock_song_get.return_value = MagicMock(spec=Song)
+        mock_user_song_rating_get.side_effect = UserSongRating.DoesNotExist
+        data = {"userid": "existinguser", "song_id": "existingsong"}
+        response = self.client.delete(reverse('delete-song-rating'), json.dumps(data),
+                                      content_type='application/json')
+        self.assertEqual(response.status_code, 404)
+
+    @patch('users.views.UserSongRating.objects.get')
+    @patch('users.views.Song.objects.get')
+    @patch('users.views.User.objects.get')
+    def test_delete_rating_successfully(self, mock_user_get, mock_song_get, mock_user_song_rating_get):
+        mock_user_get.return_value = MagicMock(spec=User)
+        mock_song_get.return_value = MagicMock(spec=Song)
+        mock_user_song_rating = MagicMock(spec=UserSongRating)
+        mock_user_song_rating_get.return_value = mock_user_song_rating
+        data = {"userid": "existinguser", "song_id": "existingsong"}
+        response = self.client.delete(reverse('delete-song-rating'), json.dumps(data),
+                                      content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+        mock_user_song_rating.delete.assert_called_once()
+
+
+class UserSongsWithGenreTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Set up data for the whole TestCase
+        newUser = User.objects.create(id="testuserID", username='testusername',
+                                      email='user@example.com', last_login=timezone.now())
+        newGenre = Genre.objects.create(name='TestGenre')
+        newSong = Song.objects.create(id="song1",
+                                      name="Test Song 1",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        newSong.genres.set([newGenre])
+        cls.song = newSong
+        cls.user = newUser
+        UserSongRating.objects.create(user=newUser, song=newSong, rating=5)
+
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_invalid_number_of_songs_type(self):
+        data = {"userid": "testuserID", "number_of_songs": "invalid", "genre_name": "TestGenre"}
+        response = self.client.get(reverse('get-songs-genre'), json.dumps(data),
+                                   content_type='application/json')
+        self.assertEqual(response.status_code, 400)
 
 
 # class UserApiTest(TestCase):
@@ -224,7 +381,7 @@ class CreateUserViewTest(TestCase):
 #     def setUpTestData(cls):
 #         cls.headers={"authorization": "Bearer e5e28a48-8080-11ee-b962-0242ac120002"}
 #         cls.client = Client()
-        
+
 #         # cls.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 #         # Setup initial data for the models
 #         cls.user1 = User.objects.create(id="first", username='testuser1',
@@ -339,7 +496,6 @@ class SavePlaylistTest(TestCase):
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 
-
     def test_save_playlist_invalid_json_format(self):
         invalid_data = 'Invalid JSON format'
 
@@ -362,7 +518,6 @@ class SavePlaylistTest(TestCase):
         self.assertIn('error', response.json())
         self.assertEqual(response.json()['error'], 'User not found')
 
-
     def test_save_playlist_unexpected_error(self):
         playlist_data = {
             'name': 'My Playlist',
@@ -373,3 +528,4 @@ class SavePlaylistTest(TestCase):
             response = self.client.post(reverse('save_playlist',kwargs={'userid': self.user.id}),
                                         data=json.dumps(playlist_data),
                                         content_type='application/json')
+

@@ -2299,7 +2299,7 @@ def delete_friend_group(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
-        data = json.loads(request.body.decode('utf-8'))
+        data = request.GET
         group_id = data.get('group_id')
         if group_id is None or not isinstance(group_id, int):
             return JsonResponse({'error': 'Please check the group id field.'}, status=400)
@@ -2445,7 +2445,7 @@ def delete_playlist_from_group(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
-        data = json.loads(request.body.decode('utf-8'))
+        data = request.GET
         playlist_id = data.get('playlist_id')
         if not playlist_id or not isinstance(playlist_id, int):
             return JsonResponse({'error': 'Please check the playlist id field.'}, status=400)
