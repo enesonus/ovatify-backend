@@ -1,7 +1,7 @@
 import json
 from django.test import Client, TestCase
 from django.urls import reverse
-
+import urllib
 from songs.models import (Song, Tempo,
                           Mood, RecordedEnvironment,
                           Genre, Artist,
@@ -11,7 +11,7 @@ from songs.models import (Song, Tempo,
 
 from users.models import (FriendGroup, FriendRequest,
                           RequestStatus, User,
-                          UserPreferences, UserSongRating,
+                          UserPreferences, UserSongRating, Friend, SuggestionNotification,
                           Friend)
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
@@ -27,13 +27,45 @@ from datetime import timedelta
 class UserModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
+       
         # Setup initial data for the models
-        cls.user1 = User.objects.create(id="first", username='testuser1',
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
                                         email='test1@example.com',
                                         last_login=timezone.now())  # Adapt field names and values
         cls.user2 = User.objects.create(id="second", username='testuser2',
                                         email='test2@example.com',
-                                        last_login=timezone.now())  # Adapt field names and values
+                                        last_login=timezone.now())
+                                          # Adapt field names and values
+
+        cls.song1 = Song.objects.create(id="song1",
+                                   name="Fark Ettim",
+                                   duration=timedelta(minutes=3, seconds=30),
+                                   tempo=Tempo.MEDIUM,
+                                   mood=Mood.HAPPY,
+                                   recorded_environment=RecordedEnvironment.STUDIO,
+                                   release_year=2020,
+                                   )
+        cls.song2 = Song.objects.create(id="song2",
+                                      name="Canima minnet",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        
+        cls.rating1 = UserSongRating.objects.create(user=UserModelTest.user1,
+                                               song=cls.song2,
+                                               rating=2)
+        cls.rating2 = UserSongRating.objects.create(user=UserModelTest.user1,
+                                               song=cls.song1,
+                                               rating=4)
+        
+        
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 
     def test_user_field_labels(self):
         user = UserModelTest.user1
@@ -124,13 +156,204 @@ class UserModelTest(TestCase):
         self.assertEqual(group.name, "Test Group")
         self.assertIn(UserModelTest.user1, group.friends.all())
         self.assertIn(UserModelTest.user2, group.friends.all())
+    
+    def test_get_recent_addition_by_count(self):
 
+        url = reverse('get-recent-addition-count')
+        response = self.client.get(url)
+        data = response.json()
+        print(data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('song_counts', data)
+        song_counts = data['song_counts']
+        
+        # Assert the length of song_counts matches the expected number of days
+        self.assertEqual(len(song_counts), 5)
+
+        # Optionally, assert the specific date format and count for today as an example
+        today_str = timezone.now().date().strftime("%d-%m")
+        today_count = next((item for item in song_counts if item['date'] == today_str), None)
+        self.assertIsNotNone(today_count)
+        self.assertEqual(today_count['count'], 2)
+
+    def test_get_profile_stats(self):
+
+        friend2 = User.objects.create(id="third", username='testuser3',
+                                        email='test3@example.com',
+                                        last_login=timezone.now())
+        
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        Friend.objects.create(user=UserModelTest.user1, friend=friend2)
+        url = reverse('get-profile-stats')
+        response = self.client.get(url)
+        data = response.json()
+
+        # Test if the response status code is as expected
+        self.assertEqual(response.status_code, 200)
+
+        # Test the response content
+        self.assertEqual(data['friend_count'], 2)  # 2 friends added
+        self.assertEqual(data['rated_count'], 2)   # 2 ratings added
+        self.assertEqual(data['rating_average'], 3)
+
+    def test_get_all_data_sharing_friends(self):
+
+        user3 = User.objects.create(id="third", username='testuser3',
+                                        email='test3@example.com',
+                                        last_login=timezone.now(),
+                                        img_url="https://www.google.com.tr")
+        user4 = User.objects.create(id="fourth", username='testuser4',
+                                        email='test4@example.com',
+                                        last_login=timezone.now())
+
+        # Create UserPreferences with data sharing consent
+        UserPreferences.objects.create(user=user3, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=user4, data_processing_consent=True, data_sharing_consent=False)
+        UserPreferences.objects.create(user=UserModelTest.user1, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=UserModelTest.user2, data_processing_consent=True, data_sharing_consent=False)
+
+        # Create friendships
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        Friend.objects.create(user=UserModelTest.user1, friend=user3)
+        Friend.objects.create(user=UserModelTest.user1, friend=user4)
+
+
+        url = reverse('get-all-data-sharing-friends')
+        response = self.client.get(url)
+        data = response.json()
+
+        # Test if the response status code is as expected
+        self.assertEqual(response.status_code, 200)
+
+        # Test if the response contains the correct friends
+        self.assertIn('friends', data)
+        friends = data['friends']
+        self.assertEqual(len(friends), 1)  # Only one friend (user3) gave data sharing consent
+        self.assertIn({'id': user3.id, 'name': user3.username, 'img_url': user3.img_url}, friends)
+
+    def test_get_friends_favorite_genres(self):
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        genre = Genre.objects.create(name='Rock')
+        genre2 = Genre.objects.create(name="Pop")
+        genre3 = Genre.objects.create(name="Hip-Hop")
+        genre4 = Genre.objects.create(name="Metal")
+        genre5 = Genre.objects.create(name="Soundtrack")
+        artist = Artist.objects.create(id = "artist1",name='Artist One')
+        artist2 = Artist.objects.create(id = "artist2",name='Artist Two')
+        UserModelTest.song1.genres.add(genre)
+        UserModelTest.song1.genres.add(genre2)
+        UserModelTest.song1.genres.add(genre3)
+        UserModelTest.song1.genres.add(genre4)
+        UserModelTest.song1.artists.add(artist)
+        UserModelTest.song1.artists.add(artist2)
+        UserModelTest.song2.genres.add(genre2)
+        UserModelTest.song2.genres.add(genre)
+        UserModelTest.song2.genres.add(genre5)
+        UserModelTest.song2.artists.add(artist)
+        UserModelTest.song2.artists.add(artist2)
+
+        UserPreferences.objects.create(user=UserModelTest.user1, data_sharing_consent=True)
+        
+        url = reverse('get-friends-favorite-genres')
+        response = self.client.get(url, {'friend_id': self.user1.id})
+        data = response.json()
+        print(data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Rock', data.keys())
+        self.assertIn('Pop', data.keys())
+
+    def test_get_friends_favorite_artists(self):
+
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        genre = Genre.objects.create(name='Rock')
+        genre2 = Genre.objects.create(name="Pop")
+        artist = Artist.objects.create(id = "artist1",name='Artist One')
+        artist2 = Artist.objects.create(id = "artist2",name='Artist Two')
+        UserModelTest.song1.genres.add(genre)
+        UserModelTest.song1.artists.add(artist)
+        UserModelTest.song2.genres.add(genre2)
+        UserModelTest.song2.artists.add(artist2)
+        UserPreferences.objects.create(user=UserModelTest.user1, data_sharing_consent=True)
+        
+        url = reverse('get-friends-favorite-artists')
+        response = self.client.get(url, {'friend_id': self.user1.id})
+        data = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Artist One', data.keys())
+        self.assertIn('Artist Two', data.keys())
+
+
+    def test_get_friends_favorite_moods(self):
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        genre = Genre.objects.create(name='Rock')
+        genre2 = Genre.objects.create(name="Pop")
+        artist = Artist.objects.create(id = "artist1",name='Artist One')
+        artist2 = Artist.objects.create(id = "artist2",name='Artist Two')
+        UserModelTest.song1.genres.add(genre)
+        UserModelTest.song1.artists.add(artist)
+        UserModelTest.song2.genres.add(genre2)
+        UserModelTest.song2.artists.add(artist2)
+
+        UserPreferences.objects.create(user=UserModelTest.user1, data_sharing_consent=True)
+
+       
+        url = reverse('get-friends-favorite-moods')
+        response = self.client.get(url, {'friend_id': self.user1.id})
+        data = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(Mood.HAPPY.label, data.keys())
+
+    def test_get_friends_favorite_tempos(self):
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        genre = Genre.objects.create(name='Rock')
+        genre2 = Genre.objects.create(name="Pop")
+        artist = Artist.objects.create(id = "artist1",name='Artist One')
+        artist2 = Artist.objects.create(id = "artist2",name='Artist Two')
+        UserModelTest.song1.genres.add(genre)
+        UserModelTest.song1.artists.add(artist)
+        UserModelTest.song2.genres.add(genre2)
+        UserModelTest.song2.artists.add(artist2)
+
+        UserPreferences.objects.create(user=UserModelTest.user1, data_sharing_consent=True)
+
+        
+        url = reverse('get-friends-favorite-tempos')
+        response = self.client.get(url, {'friend_id': self.user1.id})
+        data = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(Tempo.MEDIUM.label, data.keys())
+
+    def test_get_friends_recent_addition_by_count(self):
+        Friend.objects.create(user=UserModelTest.user1, friend=UserModelTest.user2)
+        genre = Genre.objects.create(name='Rock')
+        genre2 = Genre.objects.create(name="Pop")
+        artist = Artist.objects.create(id = "artist1",name='Artist One')
+        artist2 = Artist.objects.create(id = "artist2",name='Artist Two')
+        UserModelTest.song1.genres.add(genre)
+        UserModelTest.song1.artists.add(artist)
+        UserModelTest.song2.genres.add(genre2)
+        UserModelTest.song2.artists.add(artist2)
+
+        UserPreferences.objects.create(user=UserModelTest.user1, data_sharing_consent=True)
+
+        
+        url = reverse('get-friends-recent-addition-count')
+        response = self.client.get(url, {'friend_id': self.user1.id})
+        data = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('song_counts', data)
 
 class UserSongRatingModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         # Setup initial data for the models
-        cls.user1 = User.objects.create(id="first", username='testuser1',
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
                                         email='test1@example.com',
                                         last_login=timezone.now())
         cls.user2 = User.objects.create(id="second", username='testuser2',
@@ -145,13 +368,18 @@ class UserSongRatingModelTest(TestCase):
                                         release_year=2020,
                                         )
         cls.song2 = Song.objects.create(id="song2",
-                                        name="Canima minnet",
-                                        duration=timedelta(minutes=3, seconds=30),
-                                        tempo=Tempo.MEDIUM,
-                                        mood=Mood.HAPPY,
-                                        recorded_environment=RecordedEnvironment.STUDIO,
-                                        release_year=2020,
-                                        )
+                                      name="Canima minnet",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 
     def test_user_song_rating_creation(self):
         rating = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
@@ -183,8 +411,275 @@ class UserSongRatingModelTest(TestCase):
         # Test if rating is deleted
         self.assertFalse(UserSongRating.objects.filter(user=UserSongRatingModelTest.user1,
                                                        song=UserSongRatingModelTest.song1).exists())
+    def test_average_song_rating(self):
+        rating1 = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=4.5)
+        rating2 = UserSongRating.objects.create(user=UserSongRatingModelTest.user2,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=3.5)
+        rating3 = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song2,
+                                                rating=2.5)
+        rating4 = UserSongRating.objects.create(user=UserSongRatingModelTest.user2,
+                                                song=UserSongRatingModelTest.song2,
+                                                rating=1.5)
+        # Test if average rating is calculated correctly
+        url = reverse('get-average-rating')  # Replace with your URL name
+        response = self.client.get(url, {'song_id': self.song1.id})
+        data = response.json()
+
+        # Test if the response contains the correct average rating for song1
+        self.assertEqual(response.status_code, 200)
+    
+        # Convert the value to a float before using assertAlmostEqual
+        average_rating_song1 = float(data.get('average_rating', 0))
+        self.assertEqual(average_rating_song1, 4)
+
+        # Make GET request to the average_song_rating endpoint for song2
+        response = self.client.get(url, {'song_id': self.song2.id})
+        data = response.json()
+
+        # Test if the response contains the correct average rating for song2
+        self.assertEqual(response.status_code, 200)
+        
+        # Convert the value to a float before using assertAlmostEqual
+        average_rating_song2 = float(data.get('average_rating', 0))
+        self.assertEqual(average_rating_song2, 2)
+
+    def test_add_song_rating(self):
+        url = reverse('add-song-rating')
+        data = {'song_id': self.song1.id, 'rating': 4.5}
+
+        # Make a POST request to add a rating
+        response = self.client.post(url, json.dumps(data), content_type='application/json')
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json().get('message'), 'User rating added successfully')
+
+        # Check if the rating is actually added to the database
+        rating = UserSongRating.objects.get(user=self.user1, song=self.song1)
+        self.assertEqual(rating.rating, 4.5)
+
+    def test_edit_song_rating(self):
+        rating = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=4.5)
+        url = reverse('edit-song-rating')
+        data = {'song_id': self.song1.id, 'rating': 3.5}
+
+        # Make a POST request to edit the rating
+        response = self.client.put(url, json.dumps(data), content_type='application/json')
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json().get('message'), 'User rating updated successfully')
+
+        # Check if the rating is actually updated in the database
+        rating = UserSongRating.objects.get(user=self.user1, song=self.song1)
+        self.assertEqual(rating.rating, 3.5)
+
+    def test_delete_song_rating(self):
+        rating = UserSongRating.objects.create(user=UserSongRatingModelTest.user1,
+                                                song=UserSongRatingModelTest.song1,
+                                                rating=2)
+
+        url = reverse('delete-song-rating') + f'?song_id={self.song1.id}'
+
+        response = self.client.delete(url)
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 204)
+
+        # Check if the rating is actually deleted from the database
+        self.assertFalse(UserSongRating.objects.filter(user=self.user1, song=self.song1).exists())
 
 
+class UserRecommendationTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Setup initial data for the models
+
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())
+        cls.song1 = Song.objects.create(id="song1",
+                                   name="Fark Ettim",
+                                   duration=timedelta(minutes=3, seconds=30),
+                                   tempo=Tempo.MEDIUM,
+                                   mood=Mood.HAPPY,
+                                   recorded_environment=RecordedEnvironment.STUDIO,
+                                   release_year=2020,
+                                   )
+        cls.song2 = Song.objects.create(id="song2",
+                                      name="Canima minnet",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        cls.song3 = Song.objects.create(id="song3",
+                                      name="Test Song 3",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        cls.song4 = Song.objects.create(id="song4",
+                                      name="Test Song 4",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        cls.song5 = Song.objects.create(id="song5",
+                                      name="Test Song 5",
+                                      duration=timedelta(minutes=3, seconds=30),
+                                      tempo=Tempo.MEDIUM,
+                                      mood=Mood.HAPPY,
+                                      recorded_environment=RecordedEnvironment.STUDIO,
+                                      release_year=2020,
+                                      )
+        
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_recommend_you_might_like(self):
+        rating1 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song1,
+                                                rating=4.5)
+        rating2 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song2,
+                                                rating=3.5)
+        rating3 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song3,
+                                                rating=2.5)
+        # Test if average rating is calculated correctly
+
+        url = reverse('recommend-you-might-like')  # Replace with your URL name
+        response = self.client.get(url, {'count': 2})
+        data = response.json()
+
+        # Test if the response contains the correct average rating for song1
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data.get('message'), 'Recommendation based on track is successful')
+        self.assertIn('tracks_info', data)
+        self.assertIsInstance(data['tracks_info'], list)
+
+    def test_recommend_since_you_like(self):
+        rating1 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song1,
+                                                rating=5)
+        rating2 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song2,
+                                                rating=5)
+        rating3 = UserSongRating.objects.create(user=UserRecommendationTest.user1,
+                                                song=UserRecommendationTest.song3,
+                                                rating=5)
+        
+        genre1 = Genre.objects.create(name="Rock")
+        genre2 = Genre.objects.create(name="Pop")
+        genre3 = Genre.objects.create(name="Jazz")
+        artist1 = Artist.objects.create(id="artist1", name="Artist1")
+        artist2 = Artist.objects.create(id="artist2", name="Artist2")
+
+        UserRecommendationTest.song1.genres.set([genre1, genre2, genre3])
+        UserRecommendationTest.song1.artists.add(artist1)
+        UserRecommendationTest.song2.genres.set([genre1, genre2, genre3])
+        UserRecommendationTest.song2.artists.add(artist1)
+        UserRecommendationTest.song3.genres.set([genre1, genre2, genre3])
+        UserRecommendationTest.song3.artists.add(artist2)
+        UserRecommendationTest.song4.genres.set([genre1, genre2, genre3])
+        UserRecommendationTest.song4.artists.add(artist2)
+        UserRecommendationTest.song5.genres.set([genre1, genre2, genre3])
+        UserRecommendationTest.song5.artists.add(artist1)
+
+        url = reverse('recommend-since-you-like')
+
+        response = self.client.get(url, {'count': 2})
+        data = response.json()
+        print(data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data.get('message'), 'Recommendation based on what you listen is successful')
+        self.assertIn('tracks_info', data)
+
+    def test_recommend_friend_mix(self):
+        
+        friend1 = User.objects.create(id="testuser2", username='testuser2',
+                                        email='test2@example.com',
+                                        last_login=timezone.now())
+        friend2 = User.objects.create(id="testuser3", username='testuser3',
+                                        email='test3@example.com',
+                                        last_login=timezone.now())
+        rating1 = UserSongRating.objects.create(user=friend1,
+                                                song=UserRecommendationTest.song1,
+                                                rating=5)
+        rating2 = UserSongRating.objects.create(user=friend1,
+                                                song=UserRecommendationTest.song2,
+                                                rating=5)
+        rating3 = UserSongRating.objects.create(user=friend2,
+                                                song=UserRecommendationTest.song3,
+                                                rating=5)
+        Friend.objects.create(user=UserRecommendationTest.user1, friend=friend1)
+        Friend.objects.create(user=UserRecommendationTest.user1, friend=friend2)
+
+        UserPreferences.objects.create(user=UserRecommendationTest.user1, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=friend1, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=friend2, data_processing_consent=True, data_sharing_consent=True)
+
+        url = reverse('recommend-friend-mix')
+
+        response = self.client.get(url, {'count': 2})
+        data = response.json()
+        print(data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data.get('message'), 'Recommendation based on friends is successful')
+        self.assertIn('tracks_info', data)
+
+    def test_recommend_friend_listen(self):
+
+        friend1 = User.objects.create(id="testuser2", username='testuser2',
+                                        email='test2@example.com',
+                                        last_login=timezone.now())
+        friend2 = User.objects.create(id="testuser3", username='testuser3',
+                                        email='test3@example.com',
+                                        last_login=timezone.now())
+        rating1 = UserSongRating.objects.create(user=friend1,
+                                                song=UserRecommendationTest.song1,
+                                                rating=5)
+        rating2 = UserSongRating.objects.create(user=friend1,
+                                                song=UserRecommendationTest.song2,
+                                                rating=5)
+        rating3 = UserSongRating.objects.create(user=friend2,
+                                                song=UserRecommendationTest.song3,
+                                                rating=5)
+        Friend.objects.create(user=UserRecommendationTest.user1, friend=friend1)
+        Friend.objects.create(user=UserRecommendationTest.user1, friend=friend2)
+
+        UserPreferences.objects.create(user=UserRecommendationTest.user1, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=friend1, data_processing_consent=True, data_sharing_consent=True)
+        UserPreferences.objects.create(user=friend2, data_processing_consent=True, data_sharing_consent=True)
+
+
+        url = reverse('recommend-friend-listen')
+
+        response = self.client.get(url, {'count': 2})
+        data = response.json()
+        print(data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data.get('message'), 'Recommendation based on friends is successful')
+        self.assertIn('tracks_info', data)
+
+
+    
 class CreateUserViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -220,6 +715,132 @@ class CreateUserViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         mock_create.assert_not_called()  # Assert that the create method was not called because the user already exists
 
+class SuggestionNotificationModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Setup initial data for the models
+
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())
+        
+        cls.user2 = User.objects.create(id="testuser2", username="testuser2", email="test2@example.com",
+                                        last_login=timezone.now())
+
+        cls.song1 = Song.objects.create(id="song1",
+                                   name="Fark Ettim",
+                                   duration=timedelta(minutes=3, seconds=30),
+                                   tempo=Tempo.MEDIUM,
+                                   mood=Mood.HAPPY,
+                                   recorded_environment=RecordedEnvironment.STUDIO,
+                                   release_year=2020,
+                                   )
+        cls.song2 = Song.objects.create(id="song2",
+                                   name="Test2",
+                                   duration=timedelta(minutes=3, seconds=30),
+                                   tempo=Tempo.MEDIUM,
+                                   mood=Mood.HAPPY,
+                                   recorded_environment=RecordedEnvironment.STUDIO,
+                                   release_year=2020,
+                                   )
+        
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_suggest_song(self):
+        url = reverse('suggest-song')  # Replace with your URL name
+        data = {
+            'receiver_user': self.user2.username,
+            'song_id': self.song1.id
+        }
+
+        # Make a POST request to suggest a song
+        response = self.client.post(url, json.dumps(data), content_type='application/json')
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get('message'), 'Song suggestion sent successfully')
+
+    def test_get_suggestions(self):
+
+        suggestion = SuggestionNotification.objects.create(receiver=SuggestionNotificationModelTest.user1, 
+                                              suggester=SuggestionNotificationModelTest.user2,
+                                              song=SuggestionNotificationModelTest.song1
+                                              )
+        url = reverse('get-suggestions')  # Replace with your URL name
+
+        # Make a GET request to get suggestions
+        response = self.client.get(url)
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('items', response.json())
+        received_suggestion = response.json()['items'][0]
+        self.assertEqual(received_suggestion['id'], suggestion.id)
+        self.assertEqual(received_suggestion['suggester_name'], suggestion.suggester.username)
+
+    def test_get_suggestion_count(self):
+
+        suggestion = SuggestionNotification.objects.create(receiver=SuggestionNotificationModelTest.user1, 
+                                              suggester=SuggestionNotificationModelTest.user2,
+                                              song=SuggestionNotificationModelTest.song2
+                                              )
+        
+        suggestion = SuggestionNotification.objects.create(receiver=SuggestionNotificationModelTest.user1, 
+                                              suggester=SuggestionNotificationModelTest.user2,
+                                              song=SuggestionNotificationModelTest.song2
+                                              )
+        url = reverse('get-suggestion-count')  # Replace with your URL name
+
+        # Make a GET request to get suggestion count
+        response = self.client.get(url)
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('count', response.json())
+        received_suggestions = response.json()['count']
+    
+        # Check the count of suggestions
+        self.assertEqual(received_suggestions, 2)
+    
+    def test_set_suggestion_seen(self):
+
+        suggestion = SuggestionNotification.objects.create(receiver=SuggestionNotificationModelTest.user1, 
+                                              suggester=SuggestionNotificationModelTest.user2,
+                                              song=SuggestionNotificationModelTest.song2,
+                                              is_seen=False
+                                              )
+
+
+        url = reverse('set-suggestion-seen')  # Replace with your URL name
+
+        # Make a PUT request to set suggestions as seen
+        response = self.client.put(url)
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get('message'), 'Suggestions are marked as seen')
+        self.assertTrue(SuggestionNotification.objects.get(receiver=SuggestionNotificationModelTest.user1).is_seen)
+    
+    def test_delete_suggestion(self):
+         # Replace with your URL name
+        suggestion_id = SuggestionNotification.objects.create(
+            suggester=self.user1,
+            receiver=self.user2,
+            song=self.song1
+        ).id
+
+        url = reverse('delete-suggestion') + f'?suggestion_id={suggestion_id}'
+
+        # Make a DELETE request to delete a suggestion
+        response = self.client.delete(url)
+
+        # Test if the response is as expected
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get('message'), 'Suggestion deleted successfully')
+        self.assertFalse(SuggestionNotification.objects.filter(id=suggestion_id).exists())
 
 class DeleteUserViewTest(TestCase):
     @classmethod
@@ -1166,3 +1787,102 @@ class SavePlaylistTest(TestCase):
             response = self.client.post(reverse('save_playlist', kwargs={'userid': self.user.id}),
                                         data=json.dumps(playlist_data),
                                         content_type='application/json')
+
+class FriendGroupModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Setup initial data for the models
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())  # Adapt field names and values
+        cls.user2 = User.objects.create(id="second", username='testuser2',
+                                        email='test2@example.com',
+                                        last_login=timezone.now())
+                                          # Adapt field names and values
+        cls.user3 = User.objects.create(id="third", username='testuser3',
+                                        email='test3@example.com',
+                                        last_login=timezone.now())
+        cls.user4 = User.objects.create(id="fourth", username='testuser4',
+                                        email='test4@example.com',
+                                        last_login=timezone.now())
+        Friend.objects.create(user=cls.user1, friend=cls.user2)
+        Friend.objects.create(user=cls.user1, friend=cls.user3)
+        Friend.objects.create(user=cls.user1, friend=cls.user4)
+
+        cls.group1 = FriendGroup.objects.create(name='Group 1', created_by=cls.user1)
+        cls.group2 = FriendGroup.objects.create(name='Group 2', created_by=cls.user1)
+
+        # Add users to friend groups
+        cls.group1.friends.add(cls.user1, cls.user2, cls.user3)
+        cls.group2.friends.add(cls.user1, cls.user4)
+    def setUp(self):
+        # Setup run before every test method.
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_get_global_all_friend_groups(self):
+
+        url = reverse('get-global-all-friend-groups')  # Replace with your actual endpoint name
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('friend_groups', response.json())
+        groups = response.json()['friend_groups']
+
+        # Check if the response contains the correct friend groups
+        self.assertTrue(any(group['name'] == 'Group 1' for group in groups))
+        self.assertTrue(any(group['name'] == 'Group 2' for group in groups))
+
+    def test_create_friend_group(self):
+        url = reverse('create-friend-group')  # Replace with your actual endpoint name
+
+        data = {
+            'name': 'Group 3',
+            'description': 'A group for new friends'
+        }
+
+        response = self.client.post(url, json.dumps(data), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json().get('message'), 'Friend group created successfully')
+
+        # Check if the friend group is actually created in the database
+        created_group = FriendGroup.objects.get(name='Group 3')
+        self.assertEqual(created_group.description, 'A group for new friends')
+        self.assertEqual(created_group.created_by, self.user1)
+        self.assertIn(self.user1, created_group.friends.all())
+
+    def test_get_friend_group_by_id(self):
+        url = reverse('get-friend-group-by-id')  # Replace with your actual endpoint name
+
+        response = self.client.get(url, {'group_id': self.group1.id})
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertIn('friend_group', response_data)
+        self.assertEqual(response_data['friend_group']['name'], 'Group 1')
+        self.assertEqual(response_data['friend_group']['id'], self.group1.id)
+
+        # Test with extended data
+        response_extended = self.client.get(url, {'group_id': self.group1.id, 'extended': True})
+        self.assertEqual(response_extended.status_code, 200)
+        extended_data = response_extended.json()
+        self.assertIn('friend_group', extended_data)
+
+    def test_add_friend_to_group(self):
+        url = reverse('add-friend-to-group')  # Replace with your actual endpoint name
+
+        data = {
+            'group_id': self.group2.id,
+            'friend_name': self.user2.username,
+        }
+        response = self.client.put(url, json.dumps(data), content_type='application/json')
+        response_data = response.json()
+        print(response_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response_data['message'], 'Friend was added to the group successfully')
+
+        # Validate if the friend was actually added
+        self.group2.refresh_from_db()
+        self.assertIn(self.user2, self.group2.friends.all())
+
