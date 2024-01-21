@@ -2301,8 +2301,9 @@ def delete_friend_group(request, userid):
     try:
         data = request.GET
         group_id = data.get('group_id')
-        if group_id is None or not isinstance(group_id, int):
+        if group_id is None:
             return JsonResponse({'error': 'Please check the group id field.'}, status=400)
+        group_id = int(group_id)
         user = User.objects.get(id=userid)
         friend_group = FriendGroup.objects.get(id=group_id)
         if friend_group.created_by != user:
@@ -2313,6 +2314,8 @@ def delete_friend_group(request, userid):
         return JsonResponse({'error': 'Friend group with the given id does not exist'}, status=404)
     except User.DoesNotExist:
         return JsonResponse({'error': 'Friend with the given username does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Please check the group id field.'}, status=400)
     except Exception as e:
         logging.error(f"error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
