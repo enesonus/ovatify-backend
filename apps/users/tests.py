@@ -22,11 +22,7 @@ from rest_framework.test import APIClient
 import uuid
 from django.utils import timezone
 from datetime import timedelta
-<<<<<<< Updated upstream
-=======
 
-
->>>>>>> Stashed changes
 class UserModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -500,10 +496,6 @@ class SavePlaylistTest(TestCase):
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
     def test_save_playlist_invalid_json_format(self):
         invalid_data = 'Invalid JSON format'
 
@@ -526,10 +518,6 @@ class SavePlaylistTest(TestCase):
         self.assertIn('error', response.json())
         self.assertEqual(response.json()['error'], 'User not found')
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
     def test_save_playlist_unexpected_error(self):
         playlist_data = {
             'name': 'My Playlist',
@@ -537,12 +525,7 @@ class SavePlaylistTest(TestCase):
             'songs': [self.song.id]
         }
         with self.assertRaises(Exception):
-<<<<<<< Updated upstream
             response = self.client.post(reverse('save_playlist',kwargs={'userid': self.user.id}),
                                         data=json.dumps(playlist_data),
                                         content_type='application/json')
-=======
-            response = self.client.post(reverse('save_playlist', kwargs={'userid': self.user.id}),
-                                        data=json.dumps(playlist_data),
-                                        content_type='application/json')
->>>>>>> Stashed changes
+
