@@ -18,7 +18,10 @@ from unittest.mock import patch, MagicMock
 from rest_framework.test import APIClient
 from datetime import timedelta
 
-
+from rest_framework.test import APIClient
+import uuid
+from django.utils import timezone
+from datetime import timedelta
 class UserModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -302,3 +305,71 @@ class CreateUserViewTest(TestCase):
 #                                    headers=self.headers)
 #         self.assertEqual(response.status_code, 200)
 #         self.assertIn('songs', response.json())
+
+class SavePlaylistTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Setup any initial data the tests might rely on
+        cls.user = User.objects.create(id="testuser", username='existinguser',
+                                       email='existing@example.com',
+                                       last_login=timezone.now())
+        cls.genre = Genre.objects.create(name="Rock")
+        cls.artist = Artist.objects.create(id="artist1", name="Artist 1", bio="Artist Bio")
+        cls.album = Album.objects.create(id="album1", name="Album 1", release_year=2020)
+        cls.instrument = Instrument.objects.create(type="String", name="Guitar")
+        cls.song = Song.objects.create(
+            id="song1",
+            name="Test Song",
+            release_year=2020,
+            duration=timedelta(minutes=3, seconds=30),
+            tempo=Tempo.MEDIUM,
+            mood=Mood.HAPPY,
+            recorded_environment=RecordedEnvironment.STUDIO,
+            replay_count=100,
+            version="1.0"
+        )
+
+        # Creating Many-to-Many relationships
+        cls.song.genres.add(cls.genre)
+        cls.song.artists.add(cls.artist)
+        cls.song.albums.add(cls.album)
+        cls.song.instruments.add(cls.instrument)
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+
+    def test_save_playlist_invalid_json_format(self):
+        invalid_data = 'Invalid JSON format'
+
+        response = self.client.post(reverse('save_playlist'),
+                                    data=invalid_data,
+                                    content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid JSON format')
+
+    def test_save_playlist_user_not_found(self):
+        invalid_user_id = 'invalid_user_id'
+
+        response = self.client.post(reverse('save_playlist'),
+                                    data=json.dumps({}),
+                                    content_type='application/json')
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'User not found')
+
+
+    def test_save_playlist_unexpected_error(self):
+        playlist_data = {
+            'name': 'My Playlist',
+            'description': 'A playlist description',
+            'songs': [self.song.id]
+        }
+        with self.assertRaises(Exception):
+            response = self.client.post(reverse('save_playlist',kwargs={'userid': self.user.id}),
+                                        data=json.dumps(playlist_data),
+                                        content_type='application/json')
