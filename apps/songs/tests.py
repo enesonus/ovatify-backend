@@ -3,8 +3,11 @@ from django.test import TestCase
 from songs.models import Song, Genre, Artist, Album, Instrument, Tempo, Mood, RecordedEnvironment
 import uuid
 from datetime import timedelta
-
-
+from django.urls import reverse
+from rest_framework.test import APIClient
+from users.models import User
+from django.utils import timezone
+import json
 class SongModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -156,3 +159,202 @@ class InstrumentModelTest(TestCase):
         instrument_id = self.instrument.id
         Instrument.objects.filter(id=instrument_id).delete()
         self.assertFalse(Instrument.objects.filter(id=instrument_id).exists())
+
+class GetAllMoodsTest(TestCase):
+    def setUp(cls):
+        cls.client = APIClient()
+        cls.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_get_all_moods(self):
+        response = self.client.get(reverse('get_all_moods'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('moods', response.json())
+
+        # Ensure that the response contains the correct moods based on Mood.choices
+        expected_moods = [{'value': mood[0], 'label': mood[1]} for mood in Mood.choices]
+        self.assertEqual(response.json()['moods'], expected_moods)
+
+    def test_get_all_moods_invalid_method(self):
+        response = self.client.post(reverse('get_all_moods'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid method')
+
+class GetAllTemposTest(TestCase):
+    def setUp(cls):
+        cls.client = APIClient()
+        cls.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_get_all_tempos(self):
+        response = self.client.get(reverse('get_all_tempos'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('tempos', response.json())
+
+        # Ensure that the response contains the correct tempos based on Tempo.choices
+        expected_tempos = [{'value': tempo[0], 'label': tempo[1]} for tempo in Tempo.choices]
+        self.assertEqual(response.json()['tempos'], expected_tempos)
+
+    def test_get_all_tempos_invalid_method(self):
+        response = self.client.post(reverse('get_all_tempos'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid method')
+
+class GetBangerSongsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())
+        cls.genre = Genre.objects.create(name="Rock")
+        cls.artist = Artist.objects.create(id="artist1", name="Artist 1", bio="Artist Bio")
+        cls.album = Album.objects.create(id="album1", name="Album 1", release_year=2020)
+        cls.instrument = Instrument.objects.create(type="String", name="Guitar")
+        cls.song = Song.objects.create(
+            id=uuid.uuid4(),
+            name="Test Song",
+            release_year=2020,
+            duration=timedelta(minutes=3, seconds=30),
+            tempo=Tempo.MEDIUM,
+            mood=Mood.HAPPY,
+            recorded_environment=RecordedEnvironment.STUDIO,
+            replay_count=100,
+            version="1.0"
+        )
+
+        # Creating Many-to-Many relationships
+        cls.song.genres.add(cls.genre)
+        cls.song.artists.add(cls.artist)
+        cls.song.albums.add(cls.album)
+        cls.song.instruments.add(cls.instrument)
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_get_banger_songs_with_filters(self):
+        data = {'genre': 'Rock'}
+        response = self.client.get(reverse('get_banger_songs'),data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('song_info', response.json())
+        self.assertEqual(response.json()['message'], 'Random Banger song found')
+
+    def test_get_banger_songs_no_filters(self):
+        response = self.client.get(reverse('get_banger_songs'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'No filters provided')
+
+    def test_get_banger_songs_no_match(self):
+        response = self.client.get(reverse('get_banger_songs'),
+                                   {'mood': 'SAD', 'tempo': 'FAST'})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('message', response.json())
+        self.assertEqual(response.json()['message'], 'No Banger songs found with the given filters')
+
+    def test_get_banger_songs_invalid_method(self):
+        response = self.client.post(reverse('get_banger_songs'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid method')
+
+
+class SearchArtistsTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())
+        cls.genre = Genre.objects.create(name="Rock")
+        cls.artist = Artist.objects.create(id="artist1", name="Artist 1", bio="Artist Bio")
+        cls.album = Album.objects.create(id="album1", name="Album 1", release_year=2020)
+        cls.instrument = Instrument.objects.create(type="String", name="Guitar")
+        cls.song = Song.objects.create(
+            id=uuid.uuid4(),
+            name="Test Song",
+            release_year=2020,
+            duration=timedelta(minutes=3, seconds=30),
+            tempo=Tempo.MEDIUM,
+            mood=Mood.HAPPY,
+            recorded_environment=RecordedEnvironment.STUDIO,
+            replay_count=100,
+            version="1.0"
+        )
+
+        # Creating Many-to-Many relationships
+        cls.song.genres.add(cls.genre)
+        cls.song.artists.add(cls.artist)
+        cls.song.albums.add(cls.album)
+        cls.song.instruments.add(cls.instrument)
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_search_artists_missing_search_text(self):
+        response = self.client.get(reverse('search-artists'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Missing search text')
+
+    def test_search_artists_invalid_method(self):
+        response = self.client.post(reverse('search-artists'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid method')
+
+class SearchGenresTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user1 = User.objects.create(id="e5e28a48-8080-11ee-b962-0242ac120002", username='testuser1',
+                                        email='test1@example.com',
+                                        last_login=timezone.now())
+        cls.genre = Genre.objects.create(name="Rock")
+        cls.artist = Artist.objects.create(id="artist1", name="Artist 1", bio="Artist Bio")
+        cls.album = Album.objects.create(id="album1", name="Album 1", release_year=2020)
+        cls.instrument = Instrument.objects.create(type="String", name="Guitar")
+        cls.song = Song.objects.create(
+            id=uuid.uuid4(),
+            name="Test Song",
+            release_year=2020,
+            duration=timedelta(minutes=3, seconds=30),
+            tempo=Tempo.MEDIUM,
+            mood=Mood.HAPPY,
+            recorded_environment=RecordedEnvironment.STUDIO,
+            replay_count=100,
+            version="1.0"
+        )
+
+        # Creating Many-to-Many relationships
+        cls.song.genres.add(cls.genre)
+        cls.song.artists.add(cls.artist)
+        cls.song.albums.add(cls.album)
+        cls.song.instruments.add(cls.instrument)
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer e5e28a48-8080-11ee-b962-0242ac120002')
+
+    def test_search_genres_missing_search_text(self):
+        response = self.client.get(reverse('search_genres'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Missing search text')
+
+    def test_search_genres_invalid_method(self):
+        response = self.client.post(reverse('search_genres'))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid method')
