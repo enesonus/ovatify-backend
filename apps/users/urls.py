@@ -9,7 +9,7 @@ urlpatterns = [
     path('login/', view=views.login, name='login'),
     path('delete-user/', view=views.delete_user, name='delete-user'),
     path('update-user/', view=views.update_user, name='update-user'),
-    path('user-preferences/', view=views.user_preferences_create, name='user_preferences_create'),
+    path('user-preferences/', view=views.user_preferences_create, name='user-preferences-create'),
     path('user-songs/', view=views.user_songs_view, name='user-songs-view'),
     path('hello-github/', view=views.hello_github, name='hello-github'),
     path('add-song-rating/', view=views.add_song_rating, name='add-song-rating'),
