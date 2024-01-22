@@ -921,9 +921,7 @@ def send_friend_request(request, userid):
         if existing_friend_request:
             if existing_friend_request.status == RequestStatus.PENDING:
                 return JsonResponse({'error': 'There is already a pending request'}, status=400)
-            elif existing_friend_request.status == RequestStatus.ACCEPTED:
-                return JsonResponse({'message': f'You are already friends with {receiverUser}'}, status=400)
-            elif existing_friend_request.status == RequestStatus.REJECTED:
+            else:
                 existing_friend_request.status = RequestStatus.PENDING
                 existing_friend_request.save()
                 return JsonResponse({'message': 'Friend request sent successfully.'}, status=200)
