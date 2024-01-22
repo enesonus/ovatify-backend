@@ -517,7 +517,6 @@ def search_artists(request, userid):
         data = request.GET
         search_text = data.get('search_text')
         number_of_artists = data.get('number_of_artists', 10)
-
         if search_text:
             # Prepare the search query and vector
             search_query = SearchQuery(search_text)
@@ -556,7 +555,6 @@ def search_genres(request, userid):
         data = request.GET
         search_text = data.get('search_text')
         number_of_genres = data.get('number_of_genres', 10)
-
         if search_text:
             # Prepare the search query and vector
             search_query = SearchQuery(search_text)

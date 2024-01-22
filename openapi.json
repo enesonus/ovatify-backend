@@ -4576,6 +4576,102 @@
         }
       }
     },
+    "/users/edit-friend-group/": {
+      "put": {
+        "tags": ["FriendGroup"],
+        "summary": "Edit the name and description of a friend group. Please note that only the admin of a friend group can edit it.",
+        "description": "This endpoint allows a user to edit the details of a friend group. Only the creator of the friend group can edit its details.",
+        "operationId": "editFriendGroup",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "integer",
+                    "description": "The unique identifier of the group to be edited"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The new name of the friend group"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The new description of the friend group"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK - Friend group edited successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Friend group edited successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid group ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - If the user is not the creator, he/she is not authorized to edit this friend group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Friend group or user with the given ID does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/delete-friend-group/": {
       "delete": {
         "tags": [
@@ -4743,17 +4839,46 @@
         ],
         "responses": {
           "200": {
-            "description": "asd",
+            "description": "List of playlists retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "playlists": {
+                    "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Playlist"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "song_imgs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "url"
+                            }
+                          },
+                          "user_id": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "friend_group_id": {
+                            "type": "integer",
+                            "nullable": true
+                          }
+                        }
                       }
+                    },
+                    "count": {
+                      "type": "integer"
                     }
                   }
                 }

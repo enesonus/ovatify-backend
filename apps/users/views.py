@@ -921,9 +921,7 @@ def send_friend_request(request, userid):
         if existing_friend_request:
             if existing_friend_request.status == RequestStatus.PENDING:
                 return JsonResponse({'error': 'There is already a pending request'}, status=400)
-            elif existing_friend_request.status == RequestStatus.ACCEPTED:
-                return JsonResponse({'message': f'You are already friends with {receiverUser}'}, status=400)
-            elif existing_friend_request.status == RequestStatus.REJECTED:
+            else:
                 existing_friend_request.status = RequestStatus.PENDING
                 existing_friend_request.save()
                 return JsonResponse({'message': 'Friend request sent successfully.'}, status=200)
@@ -2299,10 +2297,11 @@ def delete_friend_group(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
-        data = json.loads(request.body.decode('utf-8'))
+        data = request.GET
         group_id = data.get('group_id')
-        if group_id is None or not isinstance(group_id, int):
+        if group_id is None:
             return JsonResponse({'error': 'Please check the group id field.'}, status=400)
+        group_id = int(group_id)
         user = User.objects.get(id=userid)
         friend_group = FriendGroup.objects.get(id=group_id)
         if friend_group.created_by != user:
@@ -2313,9 +2312,44 @@ def delete_friend_group(request, userid):
         return JsonResponse({'error': 'Friend group with the given id does not exist'}, status=404)
     except User.DoesNotExist:
         return JsonResponse({'error': 'Friend with the given username does not exist'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Please check the group id field.'}, status=400)
     except Exception as e:
         logging.error(f"error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@token_required
+def edit_friend_group(request, userid):
+    if request.method != 'PUT':
+        return HttpResponse(status=405)
+    try:
+        data = json.loads(request.body)
+        group_id = data.get('group_id')
+        name = data.get('name')
+        description = data.get('description')
+
+        if group_id is None or not isinstance(group_id, int):
+            return JsonResponse({'error': 'Please check the group id field.'}, status=400)
+        user = User.objects.get(id=userid)
+        friend_group = FriendGroup.objects.get(id=group_id)
+        if friend_group.created_by != user:
+            return JsonResponse({'error': 'You are not authorized to update this friend group.'}, status=401)
+        if description is not None:
+            friend_group.description = description
+        if name is not None:
+            friend_group.name = name
+        friend_group.save()
+        return JsonResponse({'message': 'Friend group edited successfully'}, status=200)
+    except FriendGroup.DoesNotExist:
+        return JsonResponse({'error': 'Friend group with the given id does not exist'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Friend with the given username does not exist'}, status=404)
+    except Exception as e:
+        logging.error(f"error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 
 @csrf_exempt
@@ -2354,9 +2388,13 @@ def get_playlists_of_group(request, userid):
         if group_id is None or not isinstance(group_id, int):
             return JsonResponse({'error': 'Please check the group id field.'}, status=400)
         friend_group = FriendGroup.objects.get(id=group_id)
-        playlists = friend_group.playlists.all()
-        serialized_playlists = [serializePlaylist(playlist) for playlist in playlists]
-        return JsonResponse({'playlists': serialized_playlists}, status=200)
+        playlists = friend_group.playlists.order_by('-updated_at').all()
+        data = []
+        for playlist in playlists:
+            serialized_pl = serializePlaylistInfo(playlist)
+            data.append(serialized_pl)
+        return JsonResponse({'items': data, 'count': len(data)}, status=200)
+        #return JsonResponse({'playlists': serialized_playlists}, status=200)
     except ValueError:
         return JsonResponse({'error': 'Invalid parameters'}, status=400)
     except FriendGroup.DoesNotExist:
@@ -2408,7 +2446,7 @@ def delete_playlist_from_group(request, userid):
     if request.method != 'DELETE':
         return HttpResponse(status=405)
     try:
-        data = json.loads(request.body.decode('utf-8'))
+        data = request.GET
         playlist_id = data.get('playlist_id')
         if not playlist_id or not isinstance(playlist_id, int):
             return JsonResponse({'error': 'Please check the playlist id field.'}, status=400)
