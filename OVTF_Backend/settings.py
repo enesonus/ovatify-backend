@@ -115,7 +115,7 @@ DATABASES = {
         "PORT": "5432",
         "OPTIONS": {
             "sslmode": "require",
-            "options": "endpoint=ep-black-wave-96176321",
+            "options": "endpoint=ep-holy-block-a217j2ud",
         },
     }
 }
