@@ -104,6 +104,7 @@ WSGI_APPLICATION = "OVTF_Backend.wsgi.application"
 PG_USER = os.getenv("DB_USER")
 PG_PASSWORD = os.getenv("DB_PASSWORD")
 PG_URL = os.getenv("DB_URL")
+PG_ENDPOINT = os.getenv("DB_ENDPOINT")
 
 DATABASES = {
     "default": {
@@ -115,7 +116,7 @@ DATABASES = {
         "PORT": "5432",
         "OPTIONS": {
             "sslmode": "require",
-            "options": "endpoint=ep-holy-block-a217j2ud",
+            "options": f"endpoint={PG_ENDPOINT}",
         },
     }
 }

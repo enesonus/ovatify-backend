@@ -1,14 +1,16 @@
-name: Fly Deploy - Dev
+name: Fly Deploy
 on:
   push:
     branches:
+      - main
       - dev
+
 jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       # - run: |
       #     flyctl secrets set FLY_API_TOKEN="$FLY_API_TOKEN_DEV" \
@@ -17,8 +19,25 @@ jobs:
       #                        DB_PASSWORD="$DB_PASSWORD" \
       #                        FIREBASE_CREDENTIALS="$FIREBASE_CREDENTIALS" \
       #                        --app ovatify-backend-dev
-      - run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
-      - run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
+            # Setup environment based on the branch
+      - name: Setup for main branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "FLY_APP=ovatify-backend" >> $GITHUB_ENV
+          echo "FLY_API_TOKEN=${{ secrets.FLY_API_TOKEN }}" >> $GITHUB_ENV
+          echo "CONFIG_FILE=fly-main.toml" >> $GITHUB_ENV
+          # Add other main branch specific secrets or environment variables here
+
+      - name: Setup for dev branch
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "FLY_APP=ovatify-backend-dev" >> $GITHUB_ENV
+          echo "FLY_API_TOKEN=${{ secrets.FLY_API_TOKEN_DEV }}" >> $GITHUB_ENV
+          echo "CONFIG_FILE=fly-dev.toml" >> $GITHUB_ENV
+          # Add other dev branch specific secrets or environment variables here
+      
+      - name: Load environment variables
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
+      - name: Deploy app to Fly.io
+        run: flyctl deploy --ha -c $CONFIG_FILE --remote-only --app $FLY_APP
